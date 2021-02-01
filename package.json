@@ -1,9 +1,9 @@
 {
-  "name": "fyDai-proxies",
-  "version": "1.0",
-  "description": "",
+  "name": "@yield-protocol/borrow-proxy",
+  "version": "0.1.0",
+  "description": "Proxy for the management of the Borrow tab in the UI",
   "main": "index.js",
-  "author": "",
+  "author": "Yield Inc.",
   "scripts": {
     "build": "npx hardhat compile",
     "test": "npx hardhat test test/*.ts",
@@ -17,12 +17,14 @@
     "prettier:sol": "prettier --write contracts/**/*.sol"
   },
   "devDependencies": {
+    "@yield-protocol/utils": "^1.0.2",
+    "@yield-protocol/vault-v1": "^1.0.1",
+    "@yield-protocol/yieldspace-v1": "^1.0.4",
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-etherscan": "^2.1.0",
     "@nomiclabs/hardhat-truffle5": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
-    "@openzeppelin/contracts": "^3.1.0",
     "@openzeppelin/test-helpers": "^0.5.6",
     "@truffle/hdwallet-provider": "^1.0.40",
     "@types/mocha": "^8.0.0",

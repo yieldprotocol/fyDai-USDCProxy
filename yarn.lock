@@ -1062,6 +1062,23 @@
   dependencies:
     web3 "*"
 
+"@yield-protocol/utils@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/utils/-/utils-1.0.2.tgz#669eb96d99c61e899b66374ce276f589df2bd1cb"
+  integrity sha512-riXtF86yxDoOW9UbuCO2Uwl6H/6Z3pBer4WrRsZHWprcrXAzMhth4006Xy80gPRcinM5hP56ygFwCvZvrjd19g==
+  dependencies:
+    "@openzeppelin/contracts" "^3.1.0"
+
+"@yield-protocol/vault-v1@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/vault-v1/-/vault-v1-1.0.1.tgz#339c4231c920fa08b0c02a22ed145dd4ea9ab5d2"
+  integrity sha512-gTGkEuBVZWIYJ7ogPV9YrVZz+ycK+CDpPRQRLAk7/1fp4cUjbSW9MkHkpXiC9izTFhqb0FvYmLjN5DztAQV5xA==
+
+"@yield-protocol/yieldspace-v1@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/yieldspace-v1/-/yieldspace-v1-1.0.4.tgz#2a28f2f3287235b308455efc9190c43fff6c9374"
+  integrity sha512-qt2AiY7Gk4YmzODkE6jqMh8q9iQ4MMHsSk9FCKHfbfD0yzDc+YJ34xPK39titf8JH88p+y6x30QfEdfB3kgUKg==
+
 abbrev@1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"

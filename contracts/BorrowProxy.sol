@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.10;
 
-import "./interfaces/IWeth.sol";
-import "./interfaces/IDai.sol";
-import "./interfaces/IFYDai.sol";
-import "./interfaces/ITreasury.sol";
-import "./interfaces/IController.sol";
-import "./interfaces/IPool.sol";
-import "./helpers/SafeCast.sol";
-import "./helpers/YieldAuth.sol";
+import "@yield-protocol/utils/contracts/SafeCast.sol";
+import "@yield-protocol/utils/contracts/YieldAuth.sol";
+import "@yield-protocol/vault-v1/contracts/interfaces/IFYDai.sol";
+import "@yield-protocol/vault-v1/contracts/interfaces/ITreasury.sol";
+import "@yield-protocol/vault-v1/contracts/interfaces/IController.sol";
+import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
+import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
+import "@yield-protocol/utils/contracts/interfaces/maker/IDai.sol";
 
 
 contract BorrowProxy {
