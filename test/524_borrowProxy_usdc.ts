@@ -1,4 +1,6 @@
 const Pool = artifacts.require('Pool')
+const DssPsm = artifacts.require('DssPsmMock')
+const ERC20 = artifacts.require('ERC20Mock')
 const BorrowProxy = artifacts.require('BorrowProxy')
 
 import { WETH, spot, wethTokens1, toWad, toRay, mulRay, bnify, MAX, functionSignature } from './shared/utils'
@@ -8,7 +10,7 @@ import { MakerEnvironment, YieldEnvironmentLite, YieldSpace, Contract } from './
 import { balance, BN, expectRevert } from '@openzeppelin/test-helpers'
 import { assert, expect } from 'chai'
 
-contract('BorrowProxy', async (accounts) => {
+contract('BorrowProxy - USDC', async (accounts) => {
   let [owner, user1, user2] = accounts
 
   let vault: YieldEnvironmentLite
@@ -18,9 +20,11 @@ contract('BorrowProxy', async (accounts) => {
   let treasury: Contract
   let weth: Contract
   let dai: Contract
+  let usdc: Contract
   let vat: Contract
   let fyDai: Contract
   let pool: Contract
+  let psm: Contract
   let proxy: Contract
 
   // These values impact the pool results
@@ -48,8 +52,12 @@ contract('BorrowProxy', async (accounts) => {
     pool = yieldSpace.pools[0]
     await yieldSpace.initPool(pool, toWad(1000), owner)
 
+    usdc = await ERC20.new()
+    psm = await DssPsm.new(usdc.address, dai.address)
+    await dai.rely(await psm.daiJoin())
+
     // Setup BorrowProxy
-    proxy = await BorrowProxy.new(controller.address, { from: owner })
+    proxy = await BorrowProxy.new(controller.address, psm.address, { from: owner })
 
     // Allow owner to mint fyDai the sneaky way, without recording a debt in controller
     await fyDai.orchestrate(owner, functionSignature('mint(address,uint256)'), { from: owner })
@@ -92,19 +100,6 @@ contract('BorrowProxy', async (accounts) => {
         assert.equal(await weth.balanceOf(user2), 0, 'User2 has collateral in hand')
       })
 
-      it('checks missing approvals and signatures for withdrawing', async () => {
-        let result = await proxy.withdrawCheck({ from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], false)
-
-        await controller.addDelegate(proxy.address, { from: user2 })
-        result = await proxy.withdrawCheck({ from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
-      })
-
       it('allows user to withdraw weth', async () => {
         await controller.addDelegate(proxy.address, { from: user1 })
         const previousBalance = await balance.current(user2)
@@ -126,36 +121,6 @@ contract('BorrowProxy', async (accounts) => {
         await fyDai.mint(user1, fyDaiTokens1, { from: owner })
 
         await pool.sellFYDai(user1, user1, fyDaiTokens1.div(10), { from: user1 })
-      })
-
-      it('checks missing approvals and signatures for borrowing', async () => {
-        let result = await proxy.borrowDaiForMaximumFYDaiCheck(pool.address, { from: user1 })
-
-        assert.equal(result[0], false)
-        assert.equal(result[1], false)
-
-        await controller.addDelegate(proxy.address, { from: user1 })
-        result = await proxy.borrowDaiForMaximumFYDaiCheck(pool.address, { from: user1 })
-
-        assert.equal(result[0], false)
-        assert.equal(result[1], true)
-
-        await proxy.borrowDaiForMaximumFYDaiWithSignature(
-          pool.address,
-          WETH,
-          maturity1,
-          user2,
-          oneToken,
-          fyDaiTokens1,
-          '0x',
-          {
-            from: user1,
-          }
-        )
-        result = await proxy.borrowDaiForMaximumFYDaiCheck(pool.address, { from: user1 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
       })
 
       it('borrows dai for maximum fyDai', async () => {
@@ -203,35 +168,6 @@ contract('BorrowProxy', async (accounts) => {
           )
         })
 
-        it('approvals only need to be set up once', async () => {
-          await proxy.borrowDaiForMaximumFYDai(pool.address, WETH, maturity1, user2, oneToken, fyDaiTokens1, {
-            from: user1,
-          })
-        })
-
-        it('checks missing approvals and signatures for repaying', async () => {
-          await controller.revokeDelegate(proxy.address, { from: user1 })
-          let result = await proxy.repayDaiCheck({ from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], false)
-          assert.equal(result[2], false)
-
-          await dai.approve(treasury.address, MAX, { from: user1 })
-          result = await proxy.repayDaiCheck({ from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], true)
-          assert.equal(result[2], false)
-
-          await controller.addDelegate(proxy.address, { from: user1 })
-          result = await proxy.repayDaiCheck({ from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], true)
-          assert.equal(result[2], true)
-        })
-
         it('repays debt', async () => {
           await vault.maker.getDai(user1, oneToken, rate1)
           await dai.approve(treasury.address, MAX, { from: user1 })
@@ -241,36 +177,6 @@ contract('BorrowProxy', async (accounts) => {
           })
           const debtAfter = await controller.debtDai(WETH, maturity1, user1)
           expect(debtAfter.toString()).to.be.bignumber.eq(debtBefore.sub(new BN(oneToken.toString())).toString())
-        })
-
-        it('checks missing approvals and signatures for repaying at pool rates', async () => {
-          await controller.revokeDelegate(proxy.address, { from: user1 })
-          let result = await proxy.repayMinimumFYDaiDebtForDaiCheck(pool.address, { from: user1 })
-
-          assert.equal(result[0], false)
-          assert.equal(result[1], false)
-          assert.equal(result[2], false)
-
-          await proxy.repayMinimumFYDaiDebtForDaiApprove(pool.address, { from: user1 })
-          result = await proxy.repayMinimumFYDaiDebtForDaiCheck(pool.address, { from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], false)
-          assert.equal(result[2], false)
-
-          await controller.addDelegate(proxy.address, { from: user1 })
-          result = await proxy.repayMinimumFYDaiDebtForDaiCheck(pool.address, { from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], true)
-          assert.equal(result[2], false)
-
-          await pool.addDelegate(proxy.address, { from: user1 })
-          result = await proxy.repayMinimumFYDaiDebtForDaiCheck(pool.address, { from: user1 })
-
-          assert.equal(result[0], true)
-          assert.equal(result[1], true)
-          assert.equal(result[2], true)
         })
 
         it('repays debt at pool rates', async () => {
@@ -357,208 +263,6 @@ contract('BorrowProxy', async (accounts) => {
             'BorrowProxy: Not enough fyDai debt repaid'
           )
         })
-      })
-    })
-  })
-
-  describe('lend', () => {
-    beforeEach(async () => {
-      const daiReserves = daiTokens1
-      await vault.maker.getDai(owner, daiReserves, rate1)
-
-      await fyDai.approve(pool.address, MAX, { from: owner })
-      await dai.approve(pool.address, MAX, { from: owner })
-      await pool.mint(owner, owner, daiReserves, { from: owner })
-
-      await fyDai.approve(pool.address, MAX, { from: user1 })
-      await dai.approve(pool.address, MAX, { from: user1 })
-      await pool.addDelegate(proxy.address, { from: user1 })
-    })
-
-    it('checks missing approvals and signatures for selling fyDai', async () => {
-      let result = await proxy.sellFYDaiCheck(pool.address, { from: user2 })
-
-      assert.equal(result[0], true)
-      assert.equal(result[1], false)
-      assert.equal(result[2], false)
-
-      await fyDai.approve(pool.address, MAX, { from: user2 })
-      result = await proxy.sellFYDaiCheck(pool.address, { from: user2 })
-
-      assert.equal(result[0], true)
-      assert.equal(result[1], true)
-      assert.equal(result[2], false)
-
-      await pool.addDelegate(proxy.address, { from: user2 })
-      result = await proxy.sellFYDaiCheck(pool.address, { from: user2 })
-
-      assert.equal(result[0], true)
-      assert.equal(result[1], true)
-      assert.equal(result[2], true)
-    })
-
-    it('sells fyDai', async () => {
-      const oneToken = toWad(1)
-      await fyDai.mint(user1, oneToken, { from: owner })
-
-      await proxy.sellFYDai(pool.address, user2, oneToken, oneToken.div(2), { from: user1 })
-
-      assert.equal(await fyDai.balanceOf(user1), 0, "'From' wallet should have no fyDai tokens")
-
-      const expectedDaiOut = new BN(oneToken.toString()).mul(new BN('99732')).div(new BN('100000'))
-      const daiOut = new BN(await dai.balanceOf(user2))
-      expect(daiOut).to.be.bignumber.gt(expectedDaiOut.mul(new BN('9999')).div(new BN('10000')))
-      expect(daiOut).to.be.bignumber.lt(expectedDaiOut.mul(new BN('10001')).div(new BN('10000')))
-    })
-
-    it("doesn't sell fyDai if limit not reached", async () => {
-      const oneToken = toWad(1)
-      await fyDai.mint(user1, oneToken, { from: owner })
-
-      await expectRevert(
-        proxy.sellFYDai(pool.address, user2, oneToken, oneToken.mul(2), { from: user1 }),
-        'BorrowProxy: Limit not reached'
-      )
-    })
-
-    it("doesn't sell fyDai if limit not reached", async () => {
-      const oneToken = toWad(1)
-      await fyDai.mint(user1, oneToken, { from: owner })
-
-      await expectRevert(
-        proxy.sellFYDai(pool.address, user2, oneToken, oneToken.mul(2), { from: user1 }),
-        'BorrowProxy: Limit not reached'
-      )
-    })
-
-    it('buys dai', async () => {
-      const oneToken = toWad(1)
-      await fyDai.mint(user1, oneToken.mul(2), { from: owner })
-
-      await proxy.buyDai(pool.address, user2, oneToken, oneToken.mul(2), { from: user1 })
-
-      assert.equal((await dai.balanceOf(user2)).toString(), oneToken.toString(), 'User2 should have received one Dai')
-    })
-
-    it("doesn't buy dai if limit exceeded", async () => {
-      const oneToken = toWad(1)
-      await fyDai.mint(user1, oneToken.mul(2), { from: owner })
-
-      await expectRevert(
-        proxy.buyDai(pool.address, user2, oneToken, oneToken.div(2), { from: user1 }),
-        'BorrowProxy: Limit exceeded'
-      )
-    })
-
-    describe('with extra fyDai reserves', () => {
-      beforeEach(async () => {
-        const additionalFYDaiReserves = toWad(34.4)
-        await fyDai.mint(owner, additionalFYDaiReserves, { from: owner })
-        await fyDai.approve(pool.address, additionalFYDaiReserves, { from: owner })
-        await pool.sellFYDai(owner, owner, additionalFYDaiReserves, { from: owner })
-
-        await vault.maker.getDai(user1, daiTokens1, rate1)
-      })
-
-      it('checks missing approvals and signatures for selling dai', async () => {
-        let result = await proxy.sellDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], false)
-        assert.equal(result[2], false)
-
-        await dai.approve(pool.address, MAX, { from: user2 })
-        result = await proxy.sellDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
-        assert.equal(result[2], false)
-
-        await pool.addDelegate(proxy.address, { from: user2 })
-        result = await proxy.sellDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
-        assert.equal(result[2], true)
-      })
-
-      it('sells dai', async () => {
-        const oneToken = toWad(1)
-        const daiBalance = await dai.balanceOf(user1)
-
-        // fyDaiOutForDaiIn formula: https://www.desmos.com/calculator/8eczy19er3
-
-        await proxy.sellDai(pool.address, user2, oneToken, oneToken.div(2), { from: user1 })
-
-        const expectedFYDaiOut = new BN(oneToken.toString()).mul(new BN('117440')).div(new BN('100000'))
-        const fyDaiOut = new BN(await fyDai.balanceOf(user2))
-
-        assert.equal(
-          await dai.balanceOf(user1),
-          daiBalance.sub(new BN(oneToken.toString())).toString(),
-          'User1 should have ' + daiTokens1.sub(oneToken) + ' dai tokens'
-        )
-
-        expect(fyDaiOut).to.be.bignumber.gt(expectedFYDaiOut.mul(new BN('9999')).div(new BN('10000')))
-        expect(fyDaiOut).to.be.bignumber.lt(expectedFYDaiOut.mul(new BN('10001')).div(new BN('10000')))
-      })
-
-      it("doesn't sell dai if minimum not reached", async () => {
-        await expectRevert(
-          proxy.sellDai(pool.address, user2, oneToken, oneToken.mul(2), { from: user1 }),
-          'BorrowProxy: Limit not reached'
-        )
-      })
-
-      it('checks missing approvals and signatures for buying fyDai', async () => {
-        let result = await proxy.buyFYDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], false)
-        assert.equal(result[2], false)
-
-        await dai.approve(pool.address, MAX, { from: user2 })
-        result = await proxy.buyFYDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
-        assert.equal(result[2], false)
-
-        await pool.addDelegate(proxy.address, { from: user2 })
-        result = await proxy.buyFYDaiCheck(pool.address, { from: user2 })
-
-        assert.equal(result[0], true)
-        assert.equal(result[1], true)
-        assert.equal(result[2], true)
-      })
-
-      it('buys fyDai', async () => {
-        const oneToken = new BN(toWad(1).toString())
-        const daiBalance = await dai.balanceOf(user1)
-        const fyDaiBalance = await fyDai.balanceOf(user2)
-
-        // daiInforFYDaiOut formula: https://www.desmos.com/calculator/ws5oqj8x5i
-
-        await proxy.buyFYDai(pool.address, user2, oneToken, oneToken.muln(2), { from: user1 })
-
-        const expectedDaiIn = oneToken.divn(10000).muln(8511)
-        const daiIn = daiBalance.sub(await dai.balanceOf(user1))
-
-        assert.equal(
-          await fyDai.balanceOf(user2),
-          fyDaiBalance.add(oneToken).toString(),
-          'User1 should have ' + fyDaiBalance.add(oneToken) + ' fyDai tokens'
-        )
-
-        expect(daiIn).to.be.bignumber.gt(expectedDaiIn.muln(9999).divn(10000))
-        expect(daiIn).to.be.bignumber.lt(expectedDaiIn.muln(10001).divn(10000))
-      })
-
-      it("doesn't buy fyDai if maximum exceeded", async () => {
-        await expectRevert(
-          proxy.buyFYDai(pool.address, user2, oneToken, oneToken.div(2), { from: user1 }),
-          'BorrowProxy: Limit exceeded'
-        )
       })
     })
   })

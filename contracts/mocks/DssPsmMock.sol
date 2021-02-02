@@ -26,10 +26,10 @@ contract DssPsmMock {
     event BuyGem(address indexed owner, uint256 value, uint256 fee);
 
     // --- Init ---
-    constructor(address gemJoin_, address daiJoin_) public {
-        gemJoin = GemJoinMock(gemJoin_);
-        daiJoin = DaiJoinMock(daiJoin_);
-        dai = IERC20(address(daiJoin.dai()));
+    constructor(IERC20 gem_, IERC20 dai_) public {
+        gemJoin = new GemJoinMock(address(gem_));
+        daiJoin = new DaiJoinMock(address(dai_));
+        dai = dai_;
         dai.approve(address(daiJoin), uint256(-1));
     }
 
