@@ -78,7 +78,7 @@ contract BorrowProxy {
         public
         returns (uint256)
     {
-        uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBorrow.toUint128()); // TODO: Work out off-chain
+        uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBorrow.toUint128()); // If not calculated on-chain, there will be fyDai left as slippage
         require (fyDaiToBorrow <= maximumFYDai, "BorrowProxy: Too much fyDai required");
 
         // The collateral for this borrow needs to have been posted beforehand
@@ -110,7 +110,7 @@ contract BorrowProxy {
         uint256 fee = mul(usdcToBorrow, psm.tout()) / WAD;
         uint256 daiToBuy = add(usdcToBorrow, fee);
 
-        uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBuy.toUint128()); // Work out off-chain
+        uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBuy.toUint128()); // If not calculated on-chain, there will be fyDai left as slippage
         require (fyDaiToBorrow <= maximumFYDai, "BorrowProxy: Too much fyDai required");
 
         // The collateral for this borrow needs to have been posted beforehand
@@ -119,6 +119,35 @@ contract BorrowProxy {
         psm.buyGem(to, usdcToBorrow);
 
         return fyDaiToBorrow;
+    }
+
+    /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `borrowDaiForMaximumFYDaiWithSignature`.
+    /// Caller must have called `borrowDaiForMaximumFYDaiWithSignature` at least once before to set proxy approvals.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Wallet to send the resulting Dai to.
+    /// @param maximumFYDai Maximum amount of FYDai to borrow.
+    /// @param minUsdcToBorrow Minumum amount of USDC that should be obtained.
+    function borrowMinUSDCForFYDai(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 fyDaiDebt, // Calculated off-chain
+        uint256 minUsdcToBorrow
+    )
+        public
+        returns (uint256)
+    {
+        // The collateral for this borrow needs to have been posted beforehand
+        controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiDebt);
+        uint256 daiBought = pool.sellFYDai(address(this), address(this), fyDaiDebt.toUint128());
+        uint256 usdcToBorrow = daiBought.divd(psm.tout() + WAD);
+        require(usdcToBorrow >= minUsdcToBorrow, "BorrowProxy: Not enough USDC obtained");
+        psm.buyGem(to, usdcToBorrow);
+
+        return usdcToBorrow;
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of Dai exchanged for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
