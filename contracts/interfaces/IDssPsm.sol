@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.10;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./GemJoinLike.sol";
 
-interface GemJoinLike { // TODO: Split into own file
-    function gem() external view returns(IERC20);
-}
 
 interface IDssPsm {
     function gemJoin() external view returns(GemJoinLike);

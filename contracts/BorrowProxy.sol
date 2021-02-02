@@ -12,6 +12,7 @@ import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
 import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
 import "@yield-protocol/utils/contracts/interfaces/maker/IDai.sol";
 import "./interfaces/IDssPsm.sol";
+import "./interfaces/GemJoinLike.sol";
 
 
 contract BorrowProxy is DecimalMath {

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./DaiJoinMock.sol";
+import "./GemJoinMock.sol";
 
 
 // Peg Stability Module
@@ -71,43 +73,5 @@ contract DssPsmMock {
         gemJoin.exit(usr, gemAmt);
 
         emit BuyGem(usr, gemAmt, fee);
-    }
-}
-
-interface IERC20WithMint is IERC20 {
-    function mint(address, uint256) external;
-    function burn(address, uint256) external;
-}
-
-contract GemJoinMock {
-
-    IERC20WithMint public gem;
-
-    constructor(address gem_) public {
-        gem = IERC20WithMint(gem_);
-    }
-
-    function join(address, uint256 wad, address _msgSender) external {
-        gem.burn(_msgSender, wad);
-    }
-
-    function exit(address guy, uint256 wad) external {
-        gem.mint(guy, wad);
-    }
-}
-
-contract DaiJoinMock {
-    IERC20WithMint public dai;  // Stablecoin Token
-
-    constructor(address dai_) public {
-        dai = IERC20WithMint(dai_);
-    }
-
-    function join(address, uint wad) external {
-        dai.burn(msg.sender, wad);
-    }
-
-    function exit(address usr, uint wad) external {
-        dai.mint(usr, wad);
     }
 }
