@@ -144,6 +144,24 @@ contract('BorrowProxy - USDC', async (accounts) => {
         assert.equal(await dai.balanceOf(user2), oneToken.toString())
       })
 
+      it.only('borrows usdc for maximum fyDai', async () => {
+        await controller.addDelegate(proxy.address, { from: user1 })
+        await proxy.borrowUSDCForMaximumFYDai(
+          pool.address,
+          WETH,
+          maturity1,
+          user2,
+          oneToken,
+          fyDaiTokens1,
+          {
+            from: user1,
+          }
+        )
+
+        assert.equal(await usdc.balanceOf(user2), oneToken.toString())
+      })
+
+
       it("doesn't borrow dai if limit exceeded", async () => {
         await controller.addDelegate(proxy.address, { from: user1 })
         await expectRevert(

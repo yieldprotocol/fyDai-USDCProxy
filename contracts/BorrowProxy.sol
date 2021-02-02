@@ -24,10 +24,10 @@ contract BorrowProxy is DecimalMath {
     using YieldAuth for IPool;
 
     IWeth public immutable weth;
-    IDai public immutable dai;
-    IERC20 public immutable usdc;
+    IDai public dai; // TODO: Make immutable
+    IERC20 public usdc; // TODO: Make immutable
     IController public immutable controller;
-    IDssPsm public immutable psm;
+    IDssPsm public psm; // TODO: Make immutable
 
     address public immutable treasury;
 
@@ -41,6 +41,8 @@ contract BorrowProxy is DecimalMath {
         controller = _controller;
         psm = psm_;
         usdc = GemJoinLike(psm_.gemJoin()).gem();
+        dai.approve(address(psm), type(uint256).max);
+        usdc.approve(address(psm.gemJoin()), type(uint256).max); // TODO: Check if necessary
     }
 
     /// @dev The WETH9 contract will send ether to BorrowProxy on `weth.withdraw` using this function.
@@ -143,6 +145,8 @@ contract BorrowProxy is DecimalMath {
         public
         returns (uint256)
     {
+        pool.fyDai().approve(address(pool), type(uint256).max); // TODO: Move to right place
+        
         uint256 fee = usdcToBorrow.mul(psm.tout()) / 1e18;
         uint256 daiToBuy = usdcToBorrow.add(fee);
 
