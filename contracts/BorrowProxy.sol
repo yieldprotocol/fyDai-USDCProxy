@@ -9,7 +9,7 @@ import "@yield-protocol/vault-v1/contracts/interfaces/IController.sol";
 import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
 import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
 import "@yield-protocol/utils/contracts/interfaces/maker/IDai.sol";
-import "@yield-protocol/utils/contracts/interfaces/maker/IPSM.sol";
+import "./interfaces/IDssPsm.sol";
 
 
 contract BorrowProxy {
