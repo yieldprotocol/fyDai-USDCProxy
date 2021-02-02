@@ -197,7 +197,6 @@ contract BorrowProxy {
         public
         returns (uint256)
     {
-        // TODO: Calculate fyDaiDebt off-chain, and use it as slippage protection
         uint256 fyDaiRepayment = pool.sellDaiPreview(repaymentInDai.toUint128());
         uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
         if(fyDaiRepayment <= fyDaiDebt) { // Sell no more Dai than needed to cancel all the debt
@@ -207,12 +206,9 @@ contract BorrowProxy {
             fyDaiRepayment = fyDaiDebt;
         }
         require (fyDaiRepayment >= minimumFYDaiRepayment, "BorrowProxy: Not enough fyDai debt repaid");
-
-        // TODO: Maybe have a different function to repay a whole vault using pool.buyFYDai
-        uint256 fyDaiRepayment = pool.sellDai(msg.sender, address(this), fyDaiDebtInDai.toUint128());
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiRepayment);
 
-        return 0;
+        return fyDaiRepayment;
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a maximum amount of Dai exchanged for fyDai at pool rates.
