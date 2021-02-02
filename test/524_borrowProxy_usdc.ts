@@ -61,6 +61,9 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
     // Allow owner to mint fyDai the sneaky way, without recording a debt in controller
     await fyDai.orchestrate(owner, functionSignature('mint(address,uint256)'), { from: owner })
+
+    await fyDai.approve(pool.address, MAX, { from: user1 })
+    await dai.approve(pool.address, MAX, { from: user1 })
   })
 
   describe('collateral', () => {
