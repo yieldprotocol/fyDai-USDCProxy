@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.7;
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 // Peg Stability Module
@@ -8,7 +9,7 @@ pragma solidity ^0.6.7;
 
 contract DssPsmMock {
 
-    ERC20Like public dai;
+    IERC20 public dai;
     GemJoinMock public gemJoin;
     DaiJoinMock public daiJoin;
 
@@ -26,7 +27,7 @@ contract DssPsmMock {
     constructor(address gemJoin_, address daiJoin_) public {
         gemJoin = GemJoinMock(gemJoin_);
         daiJoin = DaiJoinMock(daiJoin_);
-        dai = ERC20Like(address(daiJoin.dai()));
+        dai = IERC20(address(daiJoin.dai()));
         dai.approve(address(daiJoin), uint256(-1));
     }
 
@@ -73,43 +74,40 @@ contract DssPsmMock {
     }
 }
 
-interface ERC20Like {
-    function approve(address,uint) external;
-    function transfer(address,uint) external returns (bool);
-    function transferFrom(address,address,uint) external returns (bool);
-    function mint(address,uint) external;
-    function burn(address,uint) external;
+interface IERC20WithMint is IERC20 {
+    function mint(address, uint256) external;
+    function burn(address, uint256) external;
 }
 
-contract MockGemJoin {
+contract GemJoinMock {
 
-    ERC20Like public gem;
+    IERC20WithMint public gem;
 
     constructor(address gem_) public {
-        gem = ERC20Like(gem_);
+        gem = IERC20WithMint(gem_);
     }
 
-    function join(address urn, uint256 wad, address _msgSender) external note {
-        require(gem.transferFrom(_msgSender, address(this), wad), "GemJoin5/failed-transfer");
+    function join(address, uint256 wad, address _msgSender) external {
+        gem.burn(_msgSender, wad);
     }
 
-    function exit(address guy, uint256 wad) external note {
-        require(gem.transfer(guy, wad), "GemJoin5/failed-transfer");
+    function exit(address guy, uint256 wad) external {
+        gem.mint(guy, wad);
     }
 }
 
-contract MockDaiJoin {
-    ERC20Like public dai;  // Stablecoin Token
+contract DaiJoinMock {
+    IERC20WithMint public dai;  // Stablecoin Token
 
     constructor(address dai_) public {
-        dai = ERC20Like(dai_);
+        dai = IERC20WithMint(dai_);
     }
 
-    function join(address usr, uint wad) external note {
+    function join(address, uint wad) external {
         dai.burn(msg.sender, wad);
     }
 
-    function exit(address usr, uint wad) external note {
+    function exit(address usr, uint wad) external {
         dai.mint(usr, wad);
     }
 }

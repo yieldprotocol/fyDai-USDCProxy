@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.10;
 
+import "@openzeppelin/contracts/math/SafeMath.sol"; // TODO: Bring into @yield-protocol/utils
+import "@yield-protocol/utils/contracts/DecimalMath.sol"; // TODO: Make into library
 import "@yield-protocol/utils/contracts/SafeCast.sol";
 import "@yield-protocol/utils/contracts/YieldAuth.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/IFYDai.sol";
@@ -12,8 +14,9 @@ import "@yield-protocol/utils/contracts/interfaces/maker/IDai.sol";
 import "./interfaces/IDssPsm.sol";
 
 
-contract BorrowProxy {
+contract BorrowProxy is DecimalMath {
     using SafeCast for uint256;
+    using SafeMath for uint256;
     using YieldAuth for IDai;
     using YieldAuth for IFYDai;
     using YieldAuth for IController;
@@ -21,17 +24,22 @@ contract BorrowProxy {
 
     IWeth public immutable weth;
     IDai public immutable dai;
+    IERC20 public immutable usdc;
     IController public immutable controller;
+    IDssPsm public immutable psm;
+
     address public immutable treasury;
 
     bytes32 public constant WETH = "ETH-A";
 
-    constructor(IController _controller) public {
+    constructor(IController _controller, IDssPsm psm_) public {
         ITreasury _treasury = _controller.treasury();
         weth = _treasury.weth();
         dai = _treasury.dai();
         treasury = address(_treasury);
         controller = _controller;
+        psm = psm_;
+        usdc = GemJoinLike(psm_.gemJoin()).gem();
     }
 
     /// @dev The WETH9 contract will send ether to BorrowProxy on `weth.withdraw` using this function.
@@ -134,15 +142,15 @@ contract BorrowProxy {
         public
         returns (uint256)
     {
-        uint256 fee = mul(usdcToBorrow, psm.tout()) / WAD;
-        uint256 daiToBuy = add(usdcToBorrow, fee);
+        uint256 fee = usdcToBorrow.mul(psm.tout()) / 1e18;
+        uint256 daiToBuy = usdcToBorrow.add(fee);
 
         uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBuy.toUint128()); // If not calculated on-chain, there will be fyDai left as slippage
         require (fyDaiToBorrow <= maximumFYDai, "BorrowProxy: Too much fyDai required");
 
         // The collateral for this borrow needs to have been posted beforehand
         controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiToBorrow);
-        pool.buyDai(address(this), address(this), daiToBorrow.toUint128());
+        pool.buyDai(address(this), address(this), daiToBuy.toUint128());
         psm.buyGem(to, usdcToBorrow);
 
         return fyDaiToBorrow;
@@ -154,7 +162,7 @@ contract BorrowProxy {
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Wallet to send the resulting Dai to.
-    /// @param maximumFYDai Maximum amount of FYDai to borrow.
+    /// @param fyDaiDebt Amount of FYDai to borrow.
     /// @param minUsdcToBorrow Minumum amount of USDC that should be obtained.
     function borrowMinUSDCForFYDai(
         IPool pool,
@@ -170,7 +178,7 @@ contract BorrowProxy {
         // The collateral for this borrow needs to have been posted beforehand
         controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiDebt);
         uint256 daiBought = pool.sellFYDai(address(this), address(this), fyDaiDebt.toUint128());
-        uint256 usdcToBorrow = daiBought.divd(psm.tout() + WAD);
+        uint256 usdcToBorrow = divd(daiBought, psm.tout() + 1e18);
         require(usdcToBorrow >= minUsdcToBorrow, "BorrowProxy: Not enough USDC obtained");
         psm.buyGem(to, usdcToBorrow);
 
@@ -272,7 +280,7 @@ contract BorrowProxy {
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
-    /// @param minimumFYDaiRepayment Minimum amount of fyDai debt to repay.
+    /// @param fyDaiDebt Amount of fyDai debt to repay.
     /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
     function repayMinimumFYDaiDebtForUSDC(
         IPool pool,
@@ -285,15 +293,15 @@ contract BorrowProxy {
         public
         returns (uint256)
     {
-        uint256 fee = mul(repaymentInUSDC, psm.tin()) / WAD;
-        uint256 daiObtained = sub(repaymentInUSDC, fee);
+        uint256 fee = repaymentInUSDC.mul(psm.tin()) / 1e18; // Fees in PSM are fixed point in WAD
+        uint256 daiObtained = repaymentInUSDC.sub(fee);
 
         usdc.transferFrom(msg.sender, address(this), repaymentInUSDC);
         psm.sellGem(address(this), repaymentInUSDC);
         pool.buyFYDai(msg.sender, address(this), fyDaiDebt.toUint128()); // Find out fyDaiDebt off-chain, see previous method.
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
 
-        return 0;
+        return daiObtained;
     }
 
 
