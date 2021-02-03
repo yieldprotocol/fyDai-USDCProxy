@@ -445,8 +445,6 @@ contract BorrowProxy is DecimalMath {
         return borrowDaiForMaximumFYDai(pool, collateral, maturity, to, daiToBorrow, maximumFYDai);
     }
 
-
-
     /// @dev Determine whether all approvals and signatures are in place for `borrowUSDCForMaximumFYDai` with a given pool.
     /// If `return[0]` is `false`, calling `borrowUSDCForMaximumFYDaiWithSignature` will set the approvals.
     /// If `return[1]` is `false`, `borrowDaiForMaximumFYDaiWithSignature` must be called with a controller signature
@@ -467,9 +465,6 @@ contract BorrowProxy is DecimalMath {
         
         if (dai.allowance(address(this), address(psm)) < type(uint256).max)
             dai.approve(address(psm), type(uint256).max); // Approve to provide Dai to the PSM
-
-        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // TODO: Check if USDC reduces allowances when set to MAX
-            usdc.approve(address(psm.gemJoin()), type(uint256).max); // TODO: Move to repay with USDC
     }
 
     /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
@@ -497,8 +492,6 @@ contract BorrowProxy is DecimalMath {
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         return borrowUSDCForMaximumFYDai(pool, collateral, maturity, to, usdcToBorrow, maximumFYDai);
     }
-
-
 
     /// @dev Determine whether all approvals and signatures are in place for `repayDaiWithSignature`.
     /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
@@ -559,8 +552,6 @@ contract BorrowProxy is DecimalMath {
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of Dai exchanged for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
-    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayMinimumFYDaiDebtForDaiWithSignature`.
-    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayMinimumFYDaiDebtForDaiWithSignature`.
     /// If `repaymentInDai` exceeds the existing debt, only the necessary Dai will be used.
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
@@ -586,6 +577,57 @@ contract BorrowProxy is DecimalMath {
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         if (poolSig.length > 0) pool.addDelegatePacked(poolSig);
         return repayMinimumFYDaiDebtForDai(pool, collateral, maturity, to, minimumFYDaiRepayment, repaymentInDai);
+    }
+
+    /// @dev Set proxy approvals for `repayMinimumFYDaiDebtForUSDC` with a given pool.
+    function repayMinimumFYDaiDebtForUSDCApprove(IPool pool) public {
+        // allow the treasury to pull FYDai from us for repaying
+        if (pool.fyDai().allowance(address(this), treasury) < type(uint112).max)
+            pool.fyDai().approve(treasury, type(uint256).max);
+
+        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // TODO: Check if USDC reduces allowances when set to MAX
+            usdc.approve(address(psm.gemJoin()), type(uint256).max);
+    }
+
+    /// @dev Determine whether all approvals and signatures are in place for `repayMinimumFYDaiDebtForUSDC` with a given pool.
+    /// If `return[0]` is `false`, calling `repayMinimumFYDaiDebtForUSDCWithSignature` will set the approvals.
+    /// If `return[1]` is `false`, `repayMinimumFYDaiDebtForUSDCWithSignature` must be called with a controller signature
+    /// If `return[2]` is `false`, `repayMinimumFYDaiDebtForUSDCWithSignature` must be called with a pool signature
+    /// If `return` is `(true, true, true)`, `repayMinimumFYDaiDebtForUSDC` won't fail because of missing approvals or signatures.
+    function repayMinimumFYDaiDebtForUSDCCheck(IPool pool) public view returns (bool, bool, bool) {
+        bool approvals = pool.fyDai().allowance(address(this), treasury) >= type(uint112).max;
+        approvals = approvals && usdc.allowance(address(this), address(psm.gemJoin())) >= type(uint112).max;
+        bool controllerSig = controller.delegated(msg.sender, address(this));
+        bool poolSig = pool.delegated(msg.sender, address(this));
+        return (approvals, controllerSig, poolSig);
+    }
+
+    /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM, and then for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
+    /// If `repaymentInDai` exceeds the existing debt, only the necessary Dai will be used.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param fyDaiDebt Amount of fyDai debt to repay.
+    /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
+    /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
+    /// @param poolSig packed signature for delegation of this proxy in a pool. Ignored if '0x'.
+    function repayMinimumFYDaiDebtForUSDCWithSignature(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 repaymentInUSDC,
+        uint256 fyDaiDebt, // Calculate off-chain, works as slippage protection
+        bytes memory controllerSig,
+        bytes memory poolSig
+    )
+        public
+        returns (uint256)
+    {
+        repayMinimumFYDaiDebtForUSDCApprove(pool);
+        if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
+        if (poolSig.length > 0) pool.addDelegatePacked(poolSig);
+        return repayMinimumFYDaiDebtForUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
     }
 
     /// @dev Determine whether all approvals and signatures are in place for `sellFYDai`.
