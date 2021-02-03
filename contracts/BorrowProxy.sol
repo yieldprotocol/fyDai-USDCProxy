@@ -2,9 +2,9 @@
 pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol"; // TODO: Bring into @yield-protocol/utils
-import "@yield-protocol/utils/contracts/DecimalMath.sol"; // TODO: Make into library
-import "@yield-protocol/utils/contracts/SafeCast.sol";
-import "@yield-protocol/utils/contracts/YieldAuth.sol";
+import "@yield-protocol/utils/contracts/math/DecimalMath.sol"; // TODO: Make into library
+import "@yield-protocol/utils/contracts/utils/SafeCast.sol";
+import "@yield-protocol/utils/contracts/utils/YieldAuth.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/IFYDai.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/ITreasury.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/IController.sol";
