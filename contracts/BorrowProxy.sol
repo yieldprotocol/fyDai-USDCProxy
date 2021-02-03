@@ -97,33 +97,6 @@ contract BorrowProxy is DecimalMath {
         return fyDaiToBorrow;
     }
 
-    /// @dev Borrow fyDai from Controller and sell it immediately for a minimum amount of Dai.
-    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `borrowDaiForMaximumFYDaiWithSignature`.
-    /// Caller must have called `borrowMinDaiForFYDaiWithSignature` at least once before to set proxy approvals.
-    /// @param collateral Valid collateral type.
-    /// @param maturity Maturity of an added series
-    /// @param to Wallet to send the resulting Dai to.
-    /// @param fyDaiDebt FYDai debt to acquire.
-    /// @param minDaiOut Minimum amount of Dai that should be obtained.
-    function borrowMinDaiForFYDai(
-        IPool pool,
-        bytes32 collateral,
-        uint256 maturity,
-        address to,
-        uint256 fyDaiDebt,
-        uint256 minDaiOut
-    )
-        public
-        returns (uint256)
-    {
-        // The collateral for this borrow needs to have been posted beforehand
-        controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiDebt);
-        uint256 daiOut = pool.buyDai(address(this), to, fyDaiDebt.toUint128());
-        require (daiOut >= minDaiOut, "BorrowProxy: Not enough Dai obtained");
-
-        return daiOut;
-    }
-
     /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
     /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `borrowDaiForMaximumFYDaiWithSignature`.
     /// Caller must have called `borrowDaiForMaximumFYDaiWithSignature` at least once before to set proxy approvals.
@@ -159,34 +132,30 @@ contract BorrowProxy is DecimalMath {
         return fyDaiToBorrow;
     }
 
-    /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
-    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `borrowDaiForMaximumFYDaiWithSignature`.
-    /// Caller must have called `borrowDaiForMaximumFYDaiWithSignature` at least once before to set proxy approvals.
-    /// @param collateral Valid collateral type.
-    /// @param maturity Maturity of an added series
-    /// @param to Wallet to send the resulting Dai to.
-    /// @param fyDaiDebt Amount of FYDai to borrow.
-    /// @param minUSDCToBorrow Minumum amount of USDC that should be obtained.
-    function borrowMinUSDCForFYDai(
+    // @dev Repay all debt in Controller using for a maximum amount of Dai, reverting if surpassed.
+    // Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    // Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    // @param collateral Valid collateral type.
+    // @param maturity Maturity of an added series
+    // @param to Yield Vault to repay fyDai debt for.
+    // @param maxDaiIn Maximum amount of Dai that should be spent on the repayment.
+    /* function repayAllWithFYDai(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
         address to,
-        uint256 fyDaiDebt, // Calculated off-chain
-        uint256 minUSDCToBorrow
+        uint256 maxDaiIn
     )
         public
         returns (uint256)
     {
-        // The collateral for this borrow needs to have been posted beforehand
-        controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiDebt);
-        uint256 daiBought = pool.sellFYDai(address(this), address(this), fyDaiDebt.toUint128());
-        uint256 usdcToBorrow = divd(daiBought, psm.tout() + 1e18);
-        require(usdcToBorrow >= minUSDCToBorrow, "BorrowProxy: Not enough USDC obtained");
-        psm.buyGem(to, usdcToBorrow);
+        uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
+        uint256 daiIn = pool.buyFYDai(msg.sender, address(this), fyDaiDebt.toUint128());
+        require (daiIn <= maxDaiIn, "BorrowProxy: Too much Dai required");
+        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
 
-        return usdcToBorrow;
-    }
+        return daiIn;
+    } */
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of Dai exchanged for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
     /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayMinimumFYDaiDebtForDaiWithSignature`.
@@ -222,64 +191,10 @@ contract BorrowProxy is DecimalMath {
         return fyDaiRepayment;
     }
 
-    /// @dev Repay an amount of fyDai debt in Controller using a maximum amount of Dai exchanged for fyDai at pool rates.
-    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayFYDaiDebtForMaximumDaiWithSignature`.
-    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayFYDaiDebtForMaximumDaiWithSignature`.
-    /// If trying to repay more fyDai debt than existing, the surplus won't be refunded.
-    /// @param collateral Valid collateral type.
-    /// @param maturity Maturity of an added series
-    /// @param to Yield Vault to repay fyDai debt for.
-    /// @param fyDaiDebt Amount of fyDai debt to repay.
-    /// @param maxDaiIn Maximum amount of Dai that should be spent on the repayment.
-    function repayFYDaiDebtForMaximumDai(
-        IPool pool,
-        bytes32 collateral,
-        uint256 maturity,
-        address to,
-        uint256 fyDaiDebt,
-        uint256 maxDaiIn
-    )
-        public
-        returns (uint256)
-    {
-        uint256 daiIn = pool.buyFYDai(msg.sender, address(this), fyDaiDebt.toUint128());
-        require (daiIn <= maxDaiIn, "BorrowProxy: Too much Dai required");
-
-        // TODO: Maybe have a different function to repay a whole vault using pool.buyFYDai
-        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
-
-        return daiIn;
-    }
-
-    /// @dev Repay all debt in Controller using for a maximum amount of Dai, reverting if surpassed.
-    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
-    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
-    /// @param collateral Valid collateral type.
-    /// @param maturity Maturity of an added series
-    /// @param to Yield Vault to repay fyDai debt for.
-    /// @param maxDaiIn Maximum amount of Dai that should be spent on the repayment.
-    function repayAllWithFYDai(
-        IPool pool,
-        bytes32 collateral,
-        uint256 maturity,
-        address to,
-        uint256 maxDaiIn
-    )
-        public
-        returns (uint256)
-    {
-        uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
-        uint256 daiIn = pool.buyFYDai(msg.sender, address(this), fyDaiDebt.toUint128());
-        require (daiIn <= maxDaiIn, "BorrowProxy: Too much Dai required");
-        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
-
-        return daiIn;
-    }
-
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM, and then for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
     /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayMinimumFYDaiDebtForDaiWithSignature`.
     /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayMinimumFYDaiDebtForDaiWithSignature`.
-    /// If `repaymentInDai` exceeds the existing debt, only the necessary Dai will be used.
+    /// If `repaymentInUSDC` exceeds the existing debt, the surplus will be locked in the proxy.
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
@@ -307,6 +222,35 @@ contract BorrowProxy is DecimalMath {
         return daiObtained;
     }
 
+    /// @dev Repay all debt in Controller using for a maximum amount of USDC, reverting if surpassed.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param maxUSDCIn Maximum amount of USDC that should be spent on the repayment.
+    function repayAllWithUSDC(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 maxUSDCIn
+    )
+        public
+        returns (uint256)
+    {
+        uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
+        uint256 daiIn = pool.buyFYDaiPreview(fyDaiDebt.toUint128());
+        uint256 usdcIn = (daiIn * 1e18) / (1e18 + psm.tin()); // Fixed point division with 18 decimals
+
+        require (usdcIn <= maxUSDCIn, "BorrowProxy: Too much USDC required");
+        usdc.transferFrom(msg.sender, address(this), usdcIn);
+        psm.sellGem(address(this), usdcIn);
+        pool.buyFYDai(address(this), address(this), fyDaiDebt.toUint128());
+        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
+
+        return usdcIn;
+    }
 
     /// @dev Sell fyDai for Dai
     /// Caller must have approved the fyDai transfer with `fyDai.approve(fyDaiIn)` or with `sellFYDaiWithSignature`.
