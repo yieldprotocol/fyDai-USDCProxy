@@ -384,16 +384,6 @@ contract BorrowProxy is DecimalMath {
     /// Signature method wrappers
     /// --------------------------------------------------
 
-    /// @dev Determine whether all approvals and signatures are in place for `withdrawWithSignature`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `withdrawWithSignature` must be called with a controller signature.
-    /// If `return` is `(true, true)`, `withdrawWithSignature` won't fail because of missing approvals or signatures.
-    function withdrawCheck() public view returns (bool, bool) {
-        bool approvals = true; // sellFYDai doesn't need proxy approvals
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        return (approvals, controllerSig);
-    }
-
     /// @dev Users wishing to withdraw their Weth as ETH from the Controller should use this function.
     /// @param to Wallet to send Eth to.
     /// @param amount Amount of weth to move.
@@ -402,16 +392,6 @@ contract BorrowProxy is DecimalMath {
         public {
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         withdraw(to, amount);
-    }
-
-    /// @dev Determine whether all approvals and signatures are in place for `borrowDaiForMaximumFYDai` with a given pool.
-    /// If `return[0]` is `false`, calling `borrowDaiForMaximumFYDaiWithSignature` will set the approvals.
-    /// If `return[1]` is `false`, `borrowDaiForMaximumFYDaiWithSignature` must be called with a controller signature
-    /// If `return` is `(true, true)`, `borrowDaiForMaximumFYDai` won't fail because of missing approvals or signatures.
-    function borrowDaiForMaximumFYDaiCheck(IPool pool) public view returns (bool, bool) {
-        bool approvals = pool.fyDai().allowance(address(this), address(pool)) >= type(uint112).max;
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        return (approvals, controllerSig);
     }
 
     /// @dev Set proxy approvals for `borrowDaiForMaximumFYDai` with a given pool.
@@ -443,18 +423,6 @@ contract BorrowProxy is DecimalMath {
         borrowDaiForMaximumFYDaiApprove(pool);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         return borrowDaiForMaximumFYDai(pool, collateral, maturity, to, daiToBorrow, maximumFYDai);
-    }
-
-    /// @dev Determine whether all approvals and signatures are in place for `borrowUSDCForMaximumFYDai` with a given pool.
-    /// If `return[0]` is `false`, calling `borrowUSDCForMaximumFYDaiWithSignature` will set the approvals.
-    /// If `return[1]` is `false`, `borrowDaiForMaximumFYDaiWithSignature` must be called with a controller signature
-    /// If `return` is `(true, true)`, `borrowDaiForMaximumFYDai` won't fail because of missing approvals or signatures.
-    function borrowUSDCForMaximumFYDaiCheck(IPool pool) public view returns (bool, bool) {
-        bool approvals = pool.fyDai().allowance(address(this), address(pool)) >= type(uint112).max;
-        approvals = approvals && dai.allowance(address(this), address(psm)) == type(uint256).max;
-        approvals = approvals && usdc.allowance(address(this), address(psm.gemJoin())) >= type(uint112).max;
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        return (approvals, controllerSig);
     }
 
     /// @dev Set proxy approvals for `borrowUSDCForMaximumFYDai` with a given pool.
@@ -493,19 +461,6 @@ contract BorrowProxy is DecimalMath {
         return borrowUSDCForMaximumFYDai(pool, collateral, maturity, to, usdcToBorrow, maximumFYDai);
     }
 
-    /// @dev Determine whether all approvals and signatures are in place for `repayDaiWithSignature`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `repayDaiWithSignature` must be called with a dai permit signature.
-    /// If `return[2]` is `false`, `repayDaiWithSignature` must be called with a controller signature.
-    /// If `return` is `(true, true, true)`, `repayDaiWithSignature` won't fail because of missing approvals or signatures.
-    /// If `return` is `(true, true, any)`, `controller.repayDai` can be called directly and won't fail because of missing approvals or signatures.
-    function repayDaiCheck() public view returns (bool, bool, bool) {
-        bool approvals = true; // repayDai doesn't need proxy approvals
-        bool daiSig = dai.allowance(msg.sender, treasury) == type(uint256).max;
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        return (approvals, daiSig, controllerSig);
-    }
-
     /// @dev Burns Dai from caller to repay debt in a Yield Vault.
     /// User debt is decreased for the given collateral and fyDai series, in Yield vault `to`.
     /// The amount of debt repaid changes according to series maturity and MakerDAO rate and chi, depending on collateral type.
@@ -537,18 +492,6 @@ contract BorrowProxy is DecimalMath {
         // allow the treasury to pull FYDai from us for repaying
         if (pool.fyDai().allowance(address(this), treasury) < type(uint112).max)
             pool.fyDai().approve(treasury, type(uint256).max);
-    }
-
-    /// @dev Determine whether all approvals and signatures are in place for `repayMinimumFYDaiDebtForDai` with a given pool.
-    /// If `return[0]` is `false`, calling `repayMinimumFYDaiDebtForDaiWithSignature` will set the approvals.
-    /// If `return[1]` is `false`, `repayMinimumFYDaiDebtForDaiWithSignature` must be called with a controller signature
-    /// If `return[2]` is `false`, `repayMinimumFYDaiDebtForDaiWithSignature` must be called with a pool signature
-    /// If `return` is `(true, true, true)`, `repayMinimumFYDaiDebtForDai` won't fail because of missing approvals or signatures.
-    function repayMinimumFYDaiDebtForDaiCheck(IPool pool) public view returns (bool, bool, bool) {
-        bool approvals = pool.fyDai().allowance(address(this), treasury) >= type(uint112).max;
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        bool poolSig = pool.delegated(msg.sender, address(this));
-        return (approvals, controllerSig, poolSig);
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of Dai exchanged for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
@@ -589,19 +532,6 @@ contract BorrowProxy is DecimalMath {
             usdc.approve(address(psm.gemJoin()), type(uint256).max);
     }
 
-    /// @dev Determine whether all approvals and signatures are in place for `repayMinimumFYDaiDebtForUSDC` with a given pool.
-    /// If `return[0]` is `false`, calling `repayMinimumFYDaiDebtForUSDCWithSignature` will set the approvals.
-    /// If `return[1]` is `false`, `repayMinimumFYDaiDebtForUSDCWithSignature` must be called with a controller signature
-    /// If `return[2]` is `false`, `repayMinimumFYDaiDebtForUSDCWithSignature` must be called with a pool signature
-    /// If `return` is `(true, true, true)`, `repayMinimumFYDaiDebtForUSDC` won't fail because of missing approvals or signatures.
-    function repayMinimumFYDaiDebtForUSDCCheck(IPool pool) public view returns (bool, bool, bool) {
-        bool approvals = pool.fyDai().allowance(address(this), treasury) >= type(uint112).max;
-        approvals = approvals && usdc.allowance(address(this), address(psm.gemJoin())) >= type(uint112).max;
-        bool controllerSig = controller.delegated(msg.sender, address(this));
-        bool poolSig = pool.delegated(msg.sender, address(this));
-        return (approvals, controllerSig, poolSig);
-    }
-
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM, and then for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
     /// If `repaymentInDai` exceeds the existing debt, only the necessary Dai will be used.
     /// @param collateral Valid collateral type.
@@ -630,18 +560,6 @@ contract BorrowProxy is DecimalMath {
         return repayMinimumFYDaiDebtForUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
     }
 
-    /// @dev Determine whether all approvals and signatures are in place for `sellFYDai`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `sellFYDaiWithSignature` must be called with a fyDai permit signature.
-    /// If `return[2]` is `false`, `sellFYDaiWithSignature` must be called with a pool signature.
-    /// If `return` is `(true, true, true)`, `sellFYDai` won't fail because of missing approvals or signatures.
-    function sellFYDaiCheck(IPool pool) public view returns (bool, bool, bool) {
-        bool approvals = true; // sellFYDai doesn't need proxy approvals
-        bool fyDaiSig = pool.fyDai().allowance(msg.sender, address(pool)) >= type(uint112).max;
-        bool poolSig = pool.delegated(msg.sender, address(this));
-        return (approvals, fyDaiSig, poolSig);
-    }
-
     /// @dev Sell fyDai for Dai
     /// @param to Wallet receiving the dai being bought
     /// @param fyDaiIn Amount of fyDai being sold
@@ -662,18 +580,6 @@ contract BorrowProxy is DecimalMath {
         if (fyDaiSig.length > 0) pool.fyDai().permitPacked(address(pool), fyDaiSig);
         if (poolSig.length > 0) pool.addDelegatePacked(poolSig);
         return sellFYDai(pool, to, fyDaiIn, minDaiOut);
-    }
-
-    /// @dev Determine whether all approvals and signatures are in place for `buyFYDai`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `buyFYDaiWithSignature` must be called with a dai permit signature.
-    /// If `return[2]` is `false`, `buyFYDaiWithSignature` must be called with a pool signature.
-    /// If `return` is `(true, true, true)`, `sellDai` won't fail because of missing approvals or signatures.
-    function buyFYDaiCheck(IPool pool) public view returns (bool, bool, bool) {
-        bool approvals = true; // buyFYDai doesn't need proxy approvals
-        bool daiSig = dai.allowance(msg.sender, address(pool)) == type(uint256).max;
-        bool poolSig = pool.delegated(msg.sender, address(this));
-        return (approvals, daiSig, poolSig);
     }
 
     /// @dev Buy FYDai with Dai
@@ -698,15 +604,6 @@ contract BorrowProxy is DecimalMath {
         return buyFYDai(pool, to, fyDaiOut, maxDaiIn);
     }
 
-    /// @dev Determine whether all approvals and signatures are in place for `sellDai`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `buyDaiWithSignature` must be called with a fyDai permit signature.
-    /// If `return[2]` is `false`, `buyDaiWithSignature` must be called with a pool signature.
-    /// If `return` is `(true, true, true)`, `sellDai` won't fail because of missing approvals or signatures.
-    function sellDaiCheck(IPool pool) public view returns (bool, bool, bool) {
-        return buyFYDaiCheck(pool);
-    }
-
     /// @dev Sell Dai for fyDai
     /// @param to Wallet receiving the fyDai being bought
     /// @param daiIn Amount of dai being sold
@@ -727,15 +624,6 @@ contract BorrowProxy is DecimalMath {
         if (daiSig.length > 0) dai.permitPackedDai(address(pool), daiSig);
         if (poolSig.length > 0) pool.addDelegatePacked(poolSig);
         return sellDai(pool, to, daiIn, minFYDaiOut);
-    }
-
-    /// @dev Determine whether all approvals and signatures are in place for `buyDai`.
-    /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
-    /// If `return[1]` is `false`, `buyDaiWithSignature` must be called with a fyDai permit signature.
-    /// If `return[2]` is `false`, `buyDaiWithSignature` must be called with a pool signature.
-    /// If `return` is `(true, true, true)`, `buyDai` won't fail because of missing approvals or signatures.
-    function buyDaiCheck(IPool pool) public view returns (bool, bool, bool) {
-        return sellFYDaiCheck(pool);
     }
 
     /// @dev Buy Dai for fyDai
