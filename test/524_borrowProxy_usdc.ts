@@ -126,26 +126,9 @@ contract('BorrowProxy - USDC', async (accounts) => {
         await pool.sellFYDai(user1, user1, fyDaiTokens1.div(10), { from: user1 })
       })
 
-      it('borrows dai for maximum fyDai', async () => {
-        await controller.addDelegate(proxy.address, { from: user1 })
-        await proxy.borrowDaiForMaximumFYDaiWithSignature(
-          pool.address,
-          WETH,
-          maturity1,
-          user2,
-          oneToken,
-          fyDaiTokens1,
-          '0x',
-          {
-            from: user1,
-          }
-        )
-
-        assert.equal(await dai.balanceOf(user2), oneToken.toString())
-      })
-
       it.only('borrows usdc for maximum fyDai', async () => {
         await controller.addDelegate(proxy.address, { from: user1 })
+        await proxy.borrowUSDCForMaximumFYDaiApprove(pool.address)
         await proxy.borrowUSDCForMaximumFYDai(
           pool.address,
           WETH,

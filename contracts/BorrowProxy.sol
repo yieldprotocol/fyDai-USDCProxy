@@ -24,10 +24,10 @@ contract BorrowProxy is DecimalMath {
     using YieldAuth for IPool;
 
     IWeth public immutable weth;
-    IDai public dai; // TODO: Make immutable
-    IERC20 public usdc; // TODO: Make immutable
+    IDai public immutable dai;
+    IERC20 public immutable usdc;
     IController public immutable controller;
-    IDssPsm public psm; // TODO: Make immutable
+    IDssPsm public immutable psm;
 
     address public immutable treasury;
 
@@ -41,8 +41,6 @@ contract BorrowProxy is DecimalMath {
         controller = _controller;
         psm = psm_;
         usdc = GemJoinLike(psm_.gemJoin()).gem();
-        dai.approve(address(psm), type(uint256).max);
-        usdc.approve(address(psm.gemJoin()), type(uint256).max); // TODO: Check if necessary
     }
 
     /// @dev The WETH9 contract will send ether to BorrowProxy on `weth.withdraw` using this function.
@@ -168,14 +166,14 @@ contract BorrowProxy is DecimalMath {
     /// @param maturity Maturity of an added series
     /// @param to Wallet to send the resulting Dai to.
     /// @param fyDaiDebt Amount of FYDai to borrow.
-    /// @param minUsdcToBorrow Minumum amount of USDC that should be obtained.
+    /// @param minUSDCToBorrow Minumum amount of USDC that should be obtained.
     function borrowMinUSDCForFYDai(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
         address to,
         uint256 fyDaiDebt, // Calculated off-chain
-        uint256 minUsdcToBorrow
+        uint256 minUSDCToBorrow
     )
         public
         returns (uint256)
@@ -184,7 +182,7 @@ contract BorrowProxy is DecimalMath {
         controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiDebt);
         uint256 daiBought = pool.sellFYDai(address(this), address(this), fyDaiDebt.toUint128());
         uint256 usdcToBorrow = divd(daiBought, psm.tout() + 1e18);
-        require(usdcToBorrow >= minUsdcToBorrow, "BorrowProxy: Not enough USDC obtained");
+        require(usdcToBorrow >= minUSDCToBorrow, "BorrowProxy: Not enough USDC obtained");
         psm.buyGem(to, usdcToBorrow);
 
         return usdcToBorrow;
@@ -418,7 +416,7 @@ contract BorrowProxy is DecimalMath {
 
     /// @dev Set proxy approvals for `borrowDaiForMaximumFYDai` with a given pool.
     function borrowDaiForMaximumFYDaiApprove(IPool pool) public {
-        // allow the pool to pull FYDai/dai from us for LPing
+        // allow the pool to pull FYDai/dai from us for trading
         if (pool.fyDai().allowance(address(this), address(pool)) < type(uint112).max)
             pool.fyDai().approve(address(pool), type(uint256).max);
     }
@@ -446,6 +444,61 @@ contract BorrowProxy is DecimalMath {
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         return borrowDaiForMaximumFYDai(pool, collateral, maturity, to, daiToBorrow, maximumFYDai);
     }
+
+
+
+    /// @dev Determine whether all approvals and signatures are in place for `borrowUSDCForMaximumFYDai` with a given pool.
+    /// If `return[0]` is `false`, calling `borrowUSDCForMaximumFYDaiWithSignature` will set the approvals.
+    /// If `return[1]` is `false`, `borrowDaiForMaximumFYDaiWithSignature` must be called with a controller signature
+    /// If `return` is `(true, true)`, `borrowDaiForMaximumFYDai` won't fail because of missing approvals or signatures.
+    function borrowUSDCForMaximumFYDaiCheck(IPool pool) public view returns (bool, bool) {
+        bool approvals = pool.fyDai().allowance(address(this), address(pool)) >= type(uint112).max;
+        approvals = approvals && dai.allowance(address(this), address(psm)) == type(uint256).max;
+        approvals = approvals && usdc.allowance(address(this), address(psm.gemJoin())) >= type(uint112).max;
+        bool controllerSig = controller.delegated(msg.sender, address(this));
+        return (approvals, controllerSig);
+    }
+
+    /// @dev Set proxy approvals for `borrowUSDCForMaximumFYDai` with a given pool.
+    function borrowUSDCForMaximumFYDaiApprove(IPool pool) public {
+        // allow the pool to pull FYDai/dai from us for trading
+        if (pool.fyDai().allowance(address(this), address(pool)) < type(uint112).max)
+            pool.fyDai().approve(address(pool), type(uint256).max);
+        
+        if (dai.allowance(address(this), address(psm)) < type(uint256).max)
+            dai.approve(address(psm), type(uint256).max); // Approve to provide Dai to the PSM
+
+        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // TODO: Check if USDC reduces allowances when set to MAX
+            usdc.approve(address(psm.gemJoin()), type(uint256).max); // TODO: Move to repay with USDC
+    }
+
+    /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `borrowDaiForMaximumFYDaiWithSignature`.
+    /// Caller must have called `borrowDaiForMaximumFYDaiWithSignature` at least once before to set proxy approvals.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Wallet to send the resulting Dai to.
+    /// @param usdcToBorrow Exact amount of USDC that should be obtained.
+    /// @param maximumFYDai Maximum amount of FYDai to borrow.
+    /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
+    function borrowUSDCForMaximumFYDaiWithSignature(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 usdcToBorrow,
+        uint256 maximumFYDai,
+        bytes memory controllerSig
+    )
+        public
+        returns (uint256)
+    {
+        borrowUSDCForMaximumFYDaiApprove(pool);
+        if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
+        return borrowUSDCForMaximumFYDai(pool, collateral, maturity, to, usdcToBorrow, maximumFYDai);
+    }
+
+
 
     /// @dev Determine whether all approvals and signatures are in place for `repayDaiWithSignature`.
     /// `return[0]` is always `true`, meaning that no proxy approvals are ever needed.
