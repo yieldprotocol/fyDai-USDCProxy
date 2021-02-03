@@ -2,7 +2,7 @@
 pragma solidity ^0.6.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./DaiJoinMock.sol";
-import "./GemJoinMock.sol";
+import "./AuthGemJoinMock.sol";
 
 
 // Peg Stability Module
@@ -12,7 +12,7 @@ import "./GemJoinMock.sol";
 contract DssPsmMock {
 
     IERC20 public dai;
-    GemJoinMock public gemJoin;
+    AuthGemJoinMock public gemJoin;
     DaiJoinMock public daiJoin;
 
     uint256 public tin;         // toll in [wad]
@@ -27,7 +27,7 @@ contract DssPsmMock {
 
     // --- Init ---
     constructor(IERC20 gem_, IERC20 dai_) public {
-        gemJoin = new GemJoinMock(address(gem_));
+        gemJoin = new AuthGemJoinMock(address(gem_));
         daiJoin = new DaiJoinMock(address(dai_));
         dai = dai_;
         dai.approve(address(daiJoin), uint256(-1));

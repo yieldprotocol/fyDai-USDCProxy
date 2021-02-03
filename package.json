@@ -17,8 +17,8 @@
     "prettier:sol": "prettier --write contracts/**/*.sol"
   },
   "devDependencies": {
-    "@yield-protocol/utils": "^1.0.4",
-    "@yield-protocol/vault-v1": "^1.0.2",
+    "@yield-protocol/utils": "^1.0.6",
+    "@yield-protocol/vault-v1": "^1.0.3",
     "@yield-protocol/yieldspace-v1": "^1.0.5",
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-etherscan": "^2.1.0",
@@ -30,6 +30,7 @@
     "@truffle/hdwallet-provider": "^1.0.40",
     "@types/mocha": "^8.0.0",
     "chai": "4.2.0",
+    "dss-interfaces": "0.1.1",
     "ethereumjs-util": "^7.0.3",
     "ethers": "^5.0.7",
     "ganache-time-traveler": "^1.0.14",

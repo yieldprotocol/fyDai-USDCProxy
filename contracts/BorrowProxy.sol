@@ -10,37 +10,37 @@ import "@yield-protocol/vault-v1/contracts/interfaces/ITreasury.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/IController.sol";
 import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
 import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
-import "@yield-protocol/utils/contracts/interfaces/maker/IDai.sol";
-import "./interfaces/IDssPsm.sol";
-import "./interfaces/GemJoinLike.sol";
+import "dss-interfaces/src/dss/DaiAbstract.sol";
+import "./interfaces/AuthGemJoinAbstract.sol";
+import "./interfaces/DssPsmAbstract.sol";
 
 
 contract BorrowProxy is DecimalMath {
     using SafeCast for uint256;
     using SafeMath for uint256;
-    using YieldAuth for IDai;
+    using YieldAuth for DaiAbstract;
     using YieldAuth for IFYDai;
     using YieldAuth for IController;
     using YieldAuth for IPool;
 
     IWeth public immutable weth;
-    IDai public immutable dai;
+    DaiAbstract public immutable dai;
     IERC20 public immutable usdc;
     IController public immutable controller;
-    IDssPsm public immutable psm;
+    DssPsmAbstract public immutable psm;
 
     address public immutable treasury;
 
     bytes32 public constant WETH = "ETH-A";
 
-    constructor(IController _controller, IDssPsm psm_) public {
+    constructor(IController _controller, DssPsmAbstract psm_) public {
         ITreasury _treasury = _controller.treasury();
         weth = _treasury.weth();
         dai = _treasury.dai();
         treasury = address(_treasury);
         controller = _controller;
         psm = psm_;
-        usdc = GemJoinLike(psm_.gemJoin()).gem();
+        usdc = IERC20(AuthGemJoinAbstract(psm_.gemJoin()).gem());
     }
 
     /// @dev The WETH9 contract will send ether to BorrowProxy on `weth.withdraw` using this function.

@@ -3,7 +3,7 @@ pragma solidity ^0.6.7;
 import "./IERC20WithMint.sol";
 
 
-contract GemJoinMock {
+contract AuthGemJoinMock {
 
     IERC20WithMint public gem;
 

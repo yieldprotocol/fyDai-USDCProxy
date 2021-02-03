@@ -1062,18 +1062,18 @@
   dependencies:
     web3 "*"
 
-"@yield-protocol/utils@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@yield-protocol/utils/-/utils-1.0.4.tgz#fa550061db8472d5f15bfd1633ed4abf5fa8aaed"
-  integrity sha512-2POvpw+kEhv1ZwGcKa99rpMnMGBoW0sDEDgnYNuN8OyL8NvCjarfX7uoUES8Zx3ZOvatKGva8EsKR9RNA4Vx9w==
+"@yield-protocol/utils@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/utils/-/utils-1.0.6.tgz#a57fb1149c8ae45c6242de8251c19ee2862f2a63"
+  integrity sha512-m8UH0Wgl2yssJTFAt+GgqsS29P2LMvPd3rFlbvAsdPg8B6X4/qQlgtf+Z6NFRiFU08EobLKQtrEjXzhWcE1aPQ==
   dependencies:
     ethereumjs-util "^7.0.8"
     ethers "^5.0.7"
 
-"@yield-protocol/vault-v1@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@yield-protocol/vault-v1/-/vault-v1-1.0.2.tgz#9677c134adefce15eec159014e35debb11594842"
-  integrity sha512-rudlykAP37eTBStROcIGx/9k1DyFueAIoko96kVFkcAnurKw+ihck33Ezi7jl3mHq2DLOiVKiRF51h08UHpJ+g==
+"@yield-protocol/vault-v1@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/vault-v1/-/vault-v1-1.0.3.tgz#29101f4608ad383ac95b43c87066e6b7041ecb44"
+  integrity sha512-GIrZIrJ/9uJX6ct520tFWR3/LtZCcZfOIJtRc9tlANnAU38KeZg5C71r1Z65Lqqkxql66Xu1G4gRPFPc8OArbg==
 
 "@yield-protocol/yieldspace-v1@^1.0.5":
   version "1.0.5"
@@ -2428,6 +2428,11 @@ drbg.js@^1.0.1:
     browserify-aes "^1.0.6"
     create-hash "^1.1.2"
     create-hmac "^1.1.4"
+
+dss-interfaces@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/dss-interfaces/-/dss-interfaces-0.1.1.tgz#2ed72af0f206b5a4a6968262d42ceeefe1af9a30"
+  integrity sha512-SaTUptK+0jHsgaywKLDZBZi5L6d154b62ujFlECmY7bWPLp+7JmoK502xfjh8wtkOI5T3a7vhnEYTJ4m36uNhQ==
 
 duplexer3@^0.1.4:
   version "0.1.4"

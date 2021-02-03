@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.10;
-import "./GemJoinLike.sol";
-import "./DaiJoinLike.sol";
+import "./AuthGemJoinAbstract.sol";
+import "dss-interfaces/src/dss/DaiJoinAbstract.sol";
 
 
-interface IDssPsm {
-    function gemJoin() external view returns(GemJoinLike);
-    function daiJoin() external view returns(DaiJoinLike);
+interface DssPsmAbstract {
+    function gemJoin() external view returns(AuthGemJoinAbstract);
+    function daiJoin() external view returns(DaiJoinAbstract);
     function tin() external view returns(uint256);
     function tout() external view returns(uint256);
     function file(bytes32 what, uint256 data) external;
