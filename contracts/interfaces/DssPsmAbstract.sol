@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.6.10;
-import "./AuthGemJoinAbstract.sol";
+import "dss-interfaces/src/dss/AuthGemJoinAbstract.sol";
 import "dss-interfaces/src/dss/DaiJoinAbstract.sol";
 
 

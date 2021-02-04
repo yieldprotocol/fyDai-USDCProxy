@@ -10,8 +10,8 @@ import "@yield-protocol/vault-v1/contracts/interfaces/ITreasury.sol";
 import "@yield-protocol/vault-v1/contracts/interfaces/IController.sol";
 import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
 import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
+import "dss-interfaces/src/dss/AuthGemJoinAbstract.sol";
 import "dss-interfaces/src/dss/DaiAbstract.sol";
-import "./interfaces/AuthGemJoinAbstract.sol";
 import "./interfaces/DssPsmAbstract.sol";
 
 
