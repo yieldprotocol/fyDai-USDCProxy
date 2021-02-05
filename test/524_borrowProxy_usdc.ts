@@ -326,6 +326,22 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
       it('repays debt with USDC, through dsProxy', async () => {
 
+        // Authorize USDC
+        const usdcDigest = getPermitDigest(
+          await usdc.name(),
+          usdc.address,
+          '2',
+          chainId,
+          {
+            owner: user1,
+            spender: dsProxy.address,
+            value: MAX,
+          },
+          bnify(await usdc.nonces(user1)),
+          MAX
+        )
+        usdcSig = signPacked(usdcDigest, privateKey0)
+          
         // Authorize borrowProxy for the controller
         const controllerDigest = getSignatureDigest(
           name,
@@ -340,20 +356,6 @@ contract('BorrowProxy - USDC', async (accounts) => {
         )
         controllerSig = signPacked(controllerDigest, privateKey0)
 
-        // Authorize borrowProxy for the pool
-        const poolDigest = getSignatureDigest(
-          name,
-          pool.address,
-          chainId,
-          {
-            user: user1,
-            delegate: dsProxy.address,
-          },
-          (await pool.signatureCount(user1)).toString(),
-          MAX
-        )
-        poolSig = signPacked(poolDigest, privateKey0)
-
         const debtBefore = await controller.debtDai(WETH, maturity1, user1)
 
         const calldata = proxy.contract.methods.repayMinimumFYDaiDebtForUSDCWithSignature(
@@ -361,10 +363,10 @@ contract('BorrowProxy - USDC', async (accounts) => {
           WETH,
           maturity1,
           user1,
-          0,
           oneToken,
+          oneToken,
+          usdcSig,
           controllerSig,
-          poolSig,
         ).encodeABI()
         await dsProxy.methods['execute(address,bytes)'](proxy.address, calldata, {
           from: user1,
