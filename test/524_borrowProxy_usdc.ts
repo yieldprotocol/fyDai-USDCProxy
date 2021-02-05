@@ -1,7 +1,5 @@
-const Pool = artifacts.require('Pool')
 const FYDai = artifacts.require('FYDai')
 const DssPsm = artifacts.require('DssPsmMock')
-const ERC20 = artifacts.require('ERC20Mock')
 const USDC = artifacts.require('USDCMock')
 const BorrowProxy = artifacts.require('BorrowProxy')
 const DSProxy = artifacts.require('DSProxy')
@@ -325,7 +323,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
       })
 
-      it.only('repays debt with USDC, without trading', async () => {
+      it('repays debt with USDC, without trading', async () => {
         await controller.revokeDelegate(proxy.address, { from: user1 })
         await psm.setTin(toWad(0.01))
 

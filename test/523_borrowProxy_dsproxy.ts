@@ -1,4 +1,6 @@
 const Pool = artifacts.require('Pool')
+const DssPsm = artifacts.require('DssPsmMock')
+const USDC = artifacts.require('USDCMock')
 const BorrowProxy = artifacts.require('BorrowProxy')
 const DSProxy = artifacts.require('DSProxy')
 const DSProxyFactory = artifacts.require('DSProxyFactory')
@@ -21,7 +23,8 @@ import {
   functionSignature,
 } from './shared/utils'
 import { MakerEnvironment, YieldEnvironmentLite, Contract } from './shared/fixtures'
-import { getSignatureDigest, getPermitDigest, getDaiDigest, userPrivateKey, sign } from './shared/signatures'
+import { signatures } from '@yield-protocol/utils'
+const { getSignatureDigest, getDaiDigest, getPermitDigest, privateKey0, signPacked } = signatures
 
 // @ts-ignore
 import { balance, expectRevert } from '@openzeppelin/test-helpers'
@@ -38,7 +41,8 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
   let vat: Contract
   let fyDai1: Contract
   let pool: Contract
-
+  let usdc: Contract
+  let psm: Contract
   let borrowProxy: Contract
 
   let proxyFactory: Contract
@@ -65,8 +69,12 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
     // Setup Pool
     pool = await Pool.new(dai.address, fyDai1.address, 'Name', 'Symbol', { from: owner })
 
-    // Setup BorrowProxy
-    borrowProxy = await BorrowProxy.new(controller.address)
+    usdc = await USDC.new()
+    psm = await DssPsm.new(usdc.address, dai.address)
+    await dai.rely(await psm.daiJoin())
+
+    // Setup proxy
+    borrowProxy = await BorrowProxy.new(controller.address, psm.address, { from: owner })
 
     // Setup DSProxyFactory and DSProxyCache
     proxyFactory = await DSProxyFactory.new({ from: owner })
@@ -204,7 +212,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
               bnify(await dai.nonces(user1)),
               MAX
             )
-            daiSig = sign(digest, userPrivateKey)
+            daiSig = signPacked(digest, privateKey0)
 
             // Authorize the proxy for the controller
             digest = getSignatureDigest(
@@ -218,7 +226,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
               (await controller.signatureCount(user1)).toString(),
               MAX
             )
-            controllerSig = sign(digest, userPrivateKey)
+            controllerSig = signPacked(digest, privateKey0)
           })
 
           it('repays debt with Dai and with signature', async () => {
@@ -252,7 +260,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
               (await controller.signatureCount(user1)).toString(),
               MAX
             )
-            controllerSig = sign(controllerDigest, userPrivateKey)
+            controllerSig = signPacked(controllerDigest, privateKey0)
 
             // Authorize the proxy for the pool
             const poolDigest = getSignatureDigest(
@@ -266,7 +274,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
               (await pool.signatureCount(user1)).toString(),
               MAX
             )
-            poolSig = sign(poolDigest, userPrivateKey)
+            poolSig = signPacked(poolDigest, privateKey0)
 
             await env.maker.getDai(user1, toWad(1), rate1)
 
@@ -305,6 +313,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
       const fyDaiDigest = getPermitDigest(
         await fyDai1.name(),
         await pool.fyDai(),
+        '1',
         chainId,
         {
           owner: user1,
@@ -314,7 +323,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
         bnify(await fyDai1.nonces(user1)),
         MAX
       )
-      fyDaiSig = sign(fyDaiDigest, userPrivateKey)
+      fyDaiSig = signPacked(fyDaiDigest, privateKey0)
 
       // Authorize DAI
       const daiDigest = getDaiDigest(
@@ -329,7 +338,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
         bnify(await dai.nonces(user1)),
         MAX
       )
-      daiSig = sign(daiDigest, userPrivateKey)
+      daiSig = signPacked(daiDigest, privateKey0)
 
       // Authorize the proxy for the pool
       const poolDigest = getSignatureDigest(
@@ -343,7 +352,7 @@ contract('BorrowProxy - DSProxy', async (accounts) => {
         (await pool.signatureCount(user1)).toString(),
         MAX
       )
-      poolSig = sign(poolDigest, userPrivateKey)
+      poolSig = signPacked(poolDigest, privateKey0)
     })
 
     it('sells fyDai with signatures', async () => {
