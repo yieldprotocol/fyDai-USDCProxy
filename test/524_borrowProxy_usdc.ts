@@ -1,4 +1,5 @@
 const Pool = artifacts.require('Pool')
+const FYDai = artifacts.require('FYDai')
 const DssPsm = artifacts.require('DssPsmMock')
 const ERC20 = artifacts.require('ERC20Mock')
 const USDC = artifacts.require('USDCMock')
@@ -10,7 +11,7 @@ const DSProxyRegistry = artifacts.require('ProxyRegistry')
 import { signatures } from '@yield-protocol/utils'
 const { getSignatureDigest, getDaiDigest, getPermitDigest, privateKey0, signPacked, getDomainSeparator } = signatures
 import { WETH, spot, wethTokens1, toWad, toRay, mulRay, bnify, MAX, functionSignature, name, chainId } from './shared/utils'
-import { sellDai, buyDai, buyFYDai } from './shared/yieldspace'
+import { sellDai, buyDai, sellFYDai, buyFYDai } from './shared/yieldspace'
 import { MakerEnvironment, YieldEnvironmentLite, YieldSpace, Contract } from './shared/fixtures'
 
 // @ts-ignore
@@ -33,6 +34,17 @@ function almostEqual(x: any, y: any, p: any) {
   const pb = toBigNumber(p)
   const diff = xb.gt(yb) ? xb.sub(yb) : yb.sub(xb)
   expect(diff).to.be.bignumber.lt(pb)
+}
+
+async function calculateTrade(pool: Contract, trade: any, amount: any): Promise<any> {
+  const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+  const fyDai = await FYDai.at(await pool.fyDai())
+  return new BN(trade(
+    (await pool.getDaiReserves()).toString(),
+    (await pool.getFYDaiReserves()).toString(),
+    amount.toString(),
+    (new BN(await fyDai.maturity()).sub(now)).toString(),
+  ).toString())
 }
 
 contract('BorrowProxy - USDC', async (accounts) => {
@@ -119,16 +131,9 @@ contract('BorrowProxy - USDC', async (accounts) => {
       await pool.sellFYDai(user1, user1, fyDaiTokens1.div(10), { from: user1 })
     })
 
-    it.only('borrows usdc for maximum fyDai', async () => {
+    it('borrows usdc for maximum fyDai', async () => {
       const usdcBorrowed = oneToken
-
-      const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
-      const fyDaiDebt = new BN(buyDai(
-        (await pool.getDaiReserves()).toString(),
-        (await pool.getFYDaiReserves()).toString(),
-        usdcBorrowed.toString(),
-        (new BN(maturity1).sub(now)).toString(),
-      ).toString())
+      const fyDaiDebt = await calculateTrade(pool, buyDai, usdcBorrowed)
       const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
 
       await controller.addDelegate(proxy.address, { from: user1 })
@@ -254,12 +259,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcRepayment = new BN(oneToken.div('2').toString())
         // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
         const daiRepayment = usdcRepayment
-        const fyDaiRepayment = new BN(sellDai(
-          (await pool.getDaiReserves()).toString(),
-          (await pool.getFYDaiReserves()).toString(),
-          daiRepayment.toString(),
-          (new BN(maturity1).sub(now)).toString(),
-        ).toString())
+        const fyDaiRepayment = await calculateTrade(pool, sellDai, daiRepayment)
 
         // We borrowed 1 USDC before
         const usdcBefore = await usdc.balanceOf(user1)
@@ -414,12 +414,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
         const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
-        const daiRepayment = new BN(buyFYDai(
-          (await pool.getDaiReserves()).toString(),
-          (await pool.getFYDaiReserves()).toString(),
-          fyDaiRepayment.toString(),
-          (new BN(maturity1).sub(now)).toString(),
-        ).toString())
+        const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
         const usdcRepayment = daiRepayment
         const usdcBefore = await usdc.balanceOf(user1)
@@ -447,12 +442,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
         const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
-        const daiRepayment = new BN(buyFYDai(
-          (await pool.getDaiReserves()).toString(),
-          (await pool.getFYDaiReserves()).toString(),
-          fyDaiRepayment.toString(),
-          (new BN(maturity1).sub(now)).toString(),
-        ).toString())
+        const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
         const usdcRepayment = daiRepayment
         const usdcBefore = await usdc.balanceOf(user1)
@@ -481,12 +471,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
         const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
-        const daiRepayment = new BN(buyFYDai(
-          (await pool.getDaiReserves()).toString(),
-          (await pool.getFYDaiReserves()).toString(),
-          fyDaiRepayment.toString(),
-          (new BN(maturity1).sub(now)).toString(),
-        ).toString())
+        const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
         const usdcRepayment = daiRepayment
         const usdcBefore = await usdc.balanceOf(user1)
