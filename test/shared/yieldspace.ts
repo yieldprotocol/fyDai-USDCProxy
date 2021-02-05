@@ -1,4 +1,4 @@
-const { bignumber, add, subtract, multiply, divide, pow } = require('mathjs')
+const { bignumber, add, subtract, multiply, divide, pow, floor } = require('mathjs')
 
 // https://www.desmos.com/calculator/mllhtohxfx
 export function mint(daiReserves: any, fyDaiReserves: any, supply: any, dai: any): [any, any] {
@@ -89,7 +89,7 @@ export function sellDai(daiReserves: any, fyDaiReserves: any, dai: any, timeTill
 
   if (divide(y, x) < bignumber(1)) throw new RangeError()
 
-  return yFee
+  return floor(yFee.toFixed())
 }
 
 // https://www.desmos.com/calculator/6jlrre7ybt
@@ -113,7 +113,7 @@ export function sellFYDai(daiReserves: any, fyDaiReserves: any, fyDai: any, time
 
   if (divide(y, x) > bignumber(1)) throw new RangeError()
 
-  return yFee
+  return floor(yFee.toFixed())
 }
 
 // https://www.desmos.com/calculator/0rgnmtckvy
@@ -138,7 +138,7 @@ export function buyDai(daiReserves: any, fyDaiReserves: any, dai: any, timeTillM
 
   const yFee = add(y, fee)
 
-  return yFee
+  return floor(yFee.toFixed())
 }
 
 // https://www.desmos.com/calculator/ws5oqj8x5i
@@ -162,5 +162,5 @@ export function buyFYDai(daiReserves: any, fyDaiReserves: any, fyDai: any, timeT
 
   if (divide(y, x) > bignumber(1)) throw new RangeError()
 
-  return yFee
+  return floor(yFee.toFixed())
 }

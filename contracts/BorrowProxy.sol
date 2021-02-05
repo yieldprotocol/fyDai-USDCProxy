@@ -12,7 +12,9 @@ import "@yield-protocol/yieldspace-v1/contracts/interfaces/IPool.sol";
 import "@yield-protocol/utils/contracts/interfaces/weth/IWeth.sol";
 import "dss-interfaces/src/dss/AuthGemJoinAbstract.sol";
 import "dss-interfaces/src/dss/DaiAbstract.sol";
+import "./interfaces/IUSDC.sol";
 import "./interfaces/DssPsmAbstract.sol";
+import "hardhat/console.sol";
 
 
 contract BorrowProxy is DecimalMath {
@@ -20,12 +22,13 @@ contract BorrowProxy is DecimalMath {
     using SafeMath for uint256;
     using YieldAuth for DaiAbstract;
     using YieldAuth for IFYDai;
+    using YieldAuth for IUSDC;
     using YieldAuth for IController;
     using YieldAuth for IPool;
 
     IWeth public immutable weth;
     DaiAbstract public immutable dai;
-    IERC20 public immutable usdc;
+    IUSDC public immutable usdc;
     IController public immutable controller;
     DssPsmAbstract public immutable psm;
 
@@ -40,7 +43,7 @@ contract BorrowProxy is DecimalMath {
         treasury = address(_treasury);
         controller = _controller;
         psm = psm_;
-        usdc = IERC20(AuthGemJoinAbstract(psm_.gemJoin()).gem());
+        usdc = IUSDC(AuthGemJoinAbstract(psm_.gemJoin()).gem());
     }
 
     /// @dev The WETH9 contract will send ether to BorrowProxy on `weth.withdraw` using this function.
@@ -198,26 +201,27 @@ contract BorrowProxy is DecimalMath {
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
-    /// @param fyDaiDebt Amount of fyDai debt to repay.
-    /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
+    /// @param usdcRepayment Exact amount of USDC that should be spent on the repayment.
+    /// @param minFYDaiRepayment Minimum amount of fyDai debt to repay.
     function repayMinimumFYDaiDebtForUSDC(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
         address to,
-        uint256 repaymentInUSDC,
-        uint256 fyDaiDebt // Calculate off-chain, works as slippage protection
+        uint256 usdcRepayment,
+        uint256 minFYDaiRepayment
     )
         public
         returns (uint256)
     {
-        uint256 fee = repaymentInUSDC.mul(psm.tin()) / 1e18; // Fees in PSM are fixed point in WAD
-        uint256 daiObtained = repaymentInUSDC.sub(fee);
+        uint256 fee = usdcRepayment.mul(psm.tin()) / 1e18; // Fees in PSM are fixed point in WAD
+        uint256 daiObtained = usdcRepayment.sub(fee); // If not right, the `sellDai` might revert.
 
-        usdc.transferFrom(msg.sender, address(this), repaymentInUSDC);
-        psm.sellGem(address(this), repaymentInUSDC);
-        pool.buyFYDai(msg.sender, address(this), fyDaiDebt.toUint128()); // Find out fyDaiDebt off-chain, see previous method.
-        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
+        usdc.transferFrom(msg.sender, address(this), usdcRepayment);
+        psm.sellGem(address(this), usdcRepayment); // Thanks for not returning how much dai was the USDC sold for.
+        uint256 fyDaiRepayment =  pool.sellDai(address(this), address(this), daiObtained.toUint128());
+        require(fyDaiRepayment >= minFYDaiRepayment, "BorrowProxy: Not enough debt repaid");
+        controller.repayFYDai(collateral, maturity, address(this), to, fyDaiRepayment);
 
         return daiObtained;
     }
@@ -395,6 +399,7 @@ contract BorrowProxy is DecimalMath {
         address to,
         uint256 usdcToBorrow,
         uint256 maximumFYDai,
+        
         bytes memory controllerSig
     )
         public
@@ -468,12 +473,18 @@ contract BorrowProxy is DecimalMath {
 
     /// @dev Set proxy approvals for `repayMinimumFYDaiDebtForUSDC` with a given pool.
     function repayMinimumFYDaiDebtForUSDCApprove(IPool pool) public {
-        // allow the treasury to pull FYDai from us for repaying
+        // Send the USDC to the PSM
+        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // USDC reduces allowances when set to MAX
+            usdc.approve(address(psm.gemJoin()), type(uint256).max);
+        
+        // Send the Dai to the Pool
+        if (dai.allowance(address(this), address(pool)) < type(uint256).max)
+            dai.approve(address(pool), type(uint256).max);
+
+        // Send the fyDai to the Treasury
         if (pool.fyDai().allowance(address(this), treasury) < type(uint112).max)
             pool.fyDai().approve(treasury, type(uint256).max);
 
-        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // TODO: Check if USDC reduces allowances when set to MAX
-            usdc.approve(address(psm.gemJoin()), type(uint256).max);
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM, and then for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
@@ -483,8 +494,8 @@ contract BorrowProxy is DecimalMath {
     /// @param to Yield Vault to repay fyDai debt for.
     /// @param fyDaiDebt Amount of fyDai debt to repay.
     /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
+    /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
     /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
-    /// @param poolSig packed signature for delegation of this proxy in a pool. Ignored if '0x'.
     function repayMinimumFYDaiDebtForUSDCWithSignature(
         IPool pool,
         bytes32 collateral,
@@ -492,15 +503,15 @@ contract BorrowProxy is DecimalMath {
         address to,
         uint256 repaymentInUSDC,
         uint256 fyDaiDebt, // Calculate off-chain, works as slippage protection
-        bytes memory controllerSig,
-        bytes memory poolSig
+        bytes memory usdcSig,
+        bytes memory controllerSig
     )
         public
         returns (uint256)
     {
         repayMinimumFYDaiDebtForUSDCApprove(pool);
+        if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
-        if (poolSig.length > 0) pool.addDelegatePacked(poolSig);
         return repayMinimumFYDaiDebtForUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
     }
 

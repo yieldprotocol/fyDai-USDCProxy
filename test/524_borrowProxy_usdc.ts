@@ -1,18 +1,39 @@
 const Pool = artifacts.require('Pool')
 const DssPsm = artifacts.require('DssPsmMock')
 const ERC20 = artifacts.require('ERC20Mock')
+const USDC = artifacts.require('USDCMock')
 const BorrowProxy = artifacts.require('BorrowProxy')
 const DSProxy = artifacts.require('DSProxy')
 const DSProxyFactory = artifacts.require('DSProxyFactory')
 const DSProxyRegistry = artifacts.require('ProxyRegistry')
 
+import { signatures } from '@yield-protocol/utils'
+const { getSignatureDigest, getDaiDigest, getPermitDigest, privateKey0, signPacked, getDomainSeparator } = signatures
 import { WETH, spot, wethTokens1, toWad, toRay, mulRay, bnify, MAX, functionSignature, name, chainId } from './shared/utils'
-import { getSignatureDigest, getDaiDigest, getPermitDigest, userPrivateKey, sign } from './shared/signatures'
+import { sellDai } from './shared/yieldspace'
 import { MakerEnvironment, YieldEnvironmentLite, YieldSpace, Contract } from './shared/fixtures'
 
 // @ts-ignore
 import { balance, BN, expectRevert } from '@openzeppelin/test-helpers'
 import { assert, expect } from 'chai'
+
+function toBigNumber(x: any) {
+  if (typeof x == 'object') x = x.toString()
+  if (typeof x == 'number') return new BN(x)
+  else if (typeof x == 'string') {
+    if (x.startsWith('0x') || x.startsWith('0X')) return new BN(x.substring(2), 16)
+    else return new BN(x)
+  }
+}
+
+function almostEqual(x: any, y: any, p: any) {
+  // Check that abs(x - y) < p:
+  const xb = toBigNumber(x)
+  const yb = toBigNumber(y)
+  const pb = toBigNumber(p)
+  const diff = xb.gt(yb) ? xb.sub(yb) : yb.sub(xb)
+  expect(diff).to.be.bignumber.lt(pb)
+}
 
 contract('BorrowProxy - USDC', async (accounts) => {
   let [owner, user1, user2] = accounts
@@ -43,6 +64,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
   const oneToken = toWad(1)
 
   let maturity1: number
+  let usdcSig: any
   let controllerSig: any
   let poolSig: any
 
@@ -62,7 +84,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
     pool = yieldSpace.pools[0]
     await yieldSpace.initPool(pool, toWad(1000), owner)
 
-    usdc = await ERC20.new()
+    usdc = await USDC.new()
     psm = await DssPsm.new(usdc.address, dai.address)
     await dai.rely(await psm.daiJoin())
 
@@ -128,8 +150,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
         (await controller.signatureCount(user1)).toString(),
         MAX
       )
-      controllerSig = sign(controllerDigest, userPrivateKey)
-      
+      controllerSig = signPacked(controllerDigest, privateKey0)
+
       await proxy.borrowUSDCForMaximumFYDaiWithSignature(
         pool.address,
         WETH,
@@ -159,7 +181,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         (await controller.signatureCount(user1)).toString(),
         MAX
       )
-      controllerSig = sign(controllerDigest, userPrivateKey)
+      controllerSig = signPacked(controllerDigest, privateKey0)
 
       const calldata = proxy.contract.methods.borrowUSDCForMaximumFYDaiWithSignature(
         pool.address,
@@ -205,41 +227,69 @@ contract('BorrowProxy - USDC', async (accounts) => {
           pool.address,
           WETH,
           maturity1,
-          user2,
+          user1,
           oneToken,
           fyDaiTokens1,
           {
             from: user1,
           }
-        )  
+        )
       })
 
       it('repays debt with USDC', async () => {
-        await usdc.mint(user1, oneToken)
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+        const usdcRepayment = new BN(oneToken.div('2').toString())
+        // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
+        const daiRepayment = usdcRepayment
+        const fyDaiRepayment = new BN(sellDai(
+          (await pool.getDaiReserves()).toString(),
+          (await pool.getFYDaiReserves()).toString(),
+          daiRepayment.toString(),
+          (new BN(maturity1).sub(now)).toString(),
+        ).toString())
+
+        // We borrowed 1 USDC before
+        const usdcBefore = await usdc.balanceOf(user1)
         const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+        await usdc.approve(proxy.address, MAX, { from: user1 })
+        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
         await proxy.repayMinimumFYDaiDebtForUSDC(
           pool.address,
           WETH,
           maturity1,
           user1,
+          usdcRepayment,
           0,
-          oneToken,
           {
             from: user1,
           }
         )
-        const debtAfter = await controller.debtDai(WETH, maturity1, user1)
-        expect(debtAfter.toString()).to.be.bignumber.lt(debtBefore.toString())
-        // expect(debtAfter.toString()).to.be.bignumber.eq(debtBefore.sub(new BN(oneToken.toString())).toString())
+        const usdcAfter = await usdc.balanceOf(user1)
+        const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
+        await almostEqual(debtAfter.toString(), debtBefore.sub(fyDaiRepayment).toString(), debtBefore.div(new BN('1000000')).toString())
+        expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
       })
 
       it('repays debt with USDC, with signatures', async () => {
         await controller.revokeDelegate(proxy.address, { from: user1 })
         await pool.revokeDelegate(proxy.address, { from: user1 })
 
-        await usdc.mint(user1, oneToken)
-
+        // Authorize USDC
+        const usdcDigest = getPermitDigest(
+          await usdc.name(),
+          usdc.address,
+          '2',
+          chainId,
+          {
+            owner: user1,
+            spender: proxy.address,
+            value: MAX,
+          },
+          bnify(await usdc.nonces(user1)),
+          MAX
+        )
+        usdcSig = signPacked(usdcDigest, privateKey0)
+          
         // Authorize borrowProxy for the controller
         const controllerDigest = getSignatureDigest(
           name,
@@ -252,33 +302,19 @@ contract('BorrowProxy - USDC', async (accounts) => {
           (await controller.signatureCount(user1)).toString(),
           MAX
         )
-        controllerSig = sign(controllerDigest, userPrivateKey)
+        controllerSig = signPacked(controllerDigest, privateKey0)
 
-        // Authorize borrowProxy for the pool
-        const poolDigest = getSignatureDigest(
-          name,
-          pool.address,
-          chainId,
-          {
-            user: user1,
-            delegate: proxy.address,
-          },
-          (await pool.signatureCount(user1)).toString(),
-          MAX
-        )
-        poolSig = sign(poolDigest, userPrivateKey)
-
-        const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+        const debtBefore = await controller.debtDai(WETH, maturity1, user1)
         
         await proxy.repayMinimumFYDaiDebtForUSDCWithSignature(
           pool.address,
           WETH,
           maturity1,
           user1,
-          0,
           oneToken,
+          oneToken,
+          usdcSig,
           controllerSig,
-          poolSig,
           {
             from: user1,
           }
@@ -290,8 +326,6 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
       it('repays debt with USDC, through dsProxy', async () => {
 
-        await usdc.mint(user1, oneToken)
-
         // Authorize borrowProxy for the controller
         const controllerDigest = getSignatureDigest(
           name,
@@ -304,7 +338,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
           (await controller.signatureCount(user1)).toString(),
           MAX
         )
-        controllerSig = sign(controllerDigest, userPrivateKey)
+        controllerSig = signPacked(controllerDigest, privateKey0)
 
         // Authorize borrowProxy for the pool
         const poolDigest = getSignatureDigest(
@@ -318,9 +352,9 @@ contract('BorrowProxy - USDC', async (accounts) => {
           (await pool.signatureCount(user1)).toString(),
           MAX
         )
-        poolSig = sign(poolDigest, userPrivateKey)
+        poolSig = signPacked(poolDigest, privateKey0)
 
-        const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+        const debtBefore = await controller.debtDai(WETH, maturity1, user1)
 
         const calldata = proxy.contract.methods.repayMinimumFYDaiDebtForUSDCWithSignature(
           pool.address,
@@ -341,6 +375,25 @@ contract('BorrowProxy - USDC', async (accounts) => {
         // expect(debtAfter.toString()).to.be.bignumber.eq(debtBefore.sub(new BN(oneToken.toString())).toString())
       })
 
+      it('repays all debt with USDC', async () => {
+        await usdc.mint(user1, oneToken.mul("2"), { from: user1 })
+
+        await usdc.approve(proxy.address, MAX, { from: user1 }) // TODO: Use permit
+        await proxy.repayAllWithUSDC(
+          pool.address,
+          WETH,
+          maturity1,
+          user1,
+          MAX,
+          {
+            from: user1,
+          }
+        )
+        expect((await controller.debtFYDai(WETH, maturity1, user1)).toString()).to.be.bignumber.eq('0')
+        // expect(debtAfter.toString()).to.be.bignumber.eq(debtBefore.sub(new BN(oneToken.toString())).toString())
+      })
+
+      /*
       it('repays debt at pool rates', async () => {
         await vault.maker.getDai(user1, oneToken, rate1)
 
@@ -425,6 +478,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
           'BorrowProxy: Not enough fyDai debt repaid'
         )
       })
+      */
     })
   })
 })

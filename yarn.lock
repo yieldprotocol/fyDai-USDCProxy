@@ -1062,10 +1062,10 @@
   dependencies:
     web3 "*"
 
-"@yield-protocol/utils@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@yield-protocol/utils/-/utils-1.0.6.tgz#a57fb1149c8ae45c6242de8251c19ee2862f2a63"
-  integrity sha512-m8UH0Wgl2yssJTFAt+GgqsS29P2LMvPd3rFlbvAsdPg8B6X4/qQlgtf+Z6NFRiFU08EobLKQtrEjXzhWcE1aPQ==
+"@yield-protocol/utils@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@yield-protocol/utils/-/utils-1.0.7.tgz#8bd95573ff50657ed14c14889dc75762ada073a7"
+  integrity sha512-LVCJieZelJAvfqZNZXDPmWTJ+L84V6paMlssLP9zqcoBPjWZ8Ye3h3IVpAXsJzqtUmF259l/Wlky3Oosv4TsiQ==
   dependencies:
     ethereumjs-util "^7.0.8"
     ethers "^5.0.7"
