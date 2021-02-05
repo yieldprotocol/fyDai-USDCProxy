@@ -515,6 +515,31 @@ contract BorrowProxy is DecimalMath {
         return repayMinimumFYDaiDebtForUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
     }
 
+    /// @dev Repay all debt in Controller using for a maximum amount of USDC, reverting if surpassed.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param maxUSDCIn Maximum amount of USDC that should be spent on the repayment.
+    /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
+    /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
+    function repayAllWithUSDCWithSignature(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 maxUSDCIn,
+        bytes memory usdcSig,
+        bytes memory controllerSig
+    )
+        public
+        returns (uint256)
+    {
+        repayMinimumFYDaiDebtForUSDCApprove(pool); // Same permissions
+        if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
+        if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
+        return repayAllWithUSDC(pool, collateral, maturity, to, maxUSDCIn);
+    }
+
     /// @dev Sell fyDai for Dai
     /// @param to Wallet receiving the dai being bought
     /// @param fyDaiIn Amount of fyDai being sold
