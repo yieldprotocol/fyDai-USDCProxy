@@ -271,6 +271,26 @@ contract('BorrowProxy - USDC', async (accounts) => {
         expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
       })
 
+      it("doesn't repay with usdc if slippage exceeded", async () => {
+        const usdcRepayment = new BN(oneToken.div('2').toString())
+        await usdc.approve(proxy.address, MAX, { from: user1 })
+        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+        await expectRevert(
+          proxy.repayMinimumFYDaiDebtForUSDC(
+            pool.address,
+            WETH,
+            maturity1,
+            user1,
+            usdcRepayment,
+            MAX,
+            {
+              from: user1,
+            }
+          ),
+          'BorrowProxy: Not enough debt repaid'
+        )
+      })
+
       it('repays debt with USDC, with signatures', async () => {
         await controller.revokeDelegate(proxy.address, { from: user1 })
 
@@ -407,6 +427,39 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
         expect((await controller.debtFYDai(WETH, maturity1, user1)).toString()).to.be.bignumber.eq('0')
         almostEqual(usdcAfter.toString(), usdcBefore.sub(usdcRepayment).toString(), usdcBefore.div(new BN('1000000')).toString())
+      })
+
+      it("doesn't repay all with usdc if slippage exceeded", async () => {
+        await usdc.mint(user1, oneToken.mul("2"), { from: user1 })
+
+        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+        const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
+        const daiRepayment = new BN(buyFYDai(
+          (await pool.getDaiReserves()).toString(),
+          (await pool.getFYDaiReserves()).toString(),
+          fyDaiRepayment.toString(),
+          (new BN(maturity1).sub(now)).toString(),
+        ).toString())
+        // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
+        const usdcRepayment = daiRepayment
+        const usdcBefore = await usdc.balanceOf(user1)
+
+        await usdc.approve(proxy.address, MAX, { from: user1 })
+        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+
+        await expectRevert(
+          proxy.repayAllWithUSDC(
+            pool.address,
+            WETH,
+            maturity1,
+            user1,
+            0,
+            {
+              from: user1,
+            }
+          ),
+          'BorrowProxy: Too much USDC required'
+        )
       })
 
       it('repays all debt with USDC, with signatures', async () => {
