@@ -47,12 +47,11 @@ contract DssPsmMock {
     }
 
     // --- Administration ---
-    function file(bytes32 what, uint256 data) external {
-        if (what == "tin") tin = data;
-        else if (what == "tout") tout = data;
-        else revert("DssPsm/file-unrecognized-param");
-
-        emit File(what, data);
+    function setTin(uint256 tin_) external {
+        tin = tin_;
+    }
+    function setTout(uint256 tout_) external {
+        tout = tout_;
     }
 
     // --- Primary Functions ---

@@ -155,6 +155,34 @@ contract('BorrowProxy - USDC', async (accounts) => {
       almostEqual(debtAfter.toString(), debtBefore.add(fyDaiDebt).toString(), debtAfter.div(new BN('1000000')).toString())
     })
 
+    it('borrows usdc with a fee', async () => {
+      await psm.setTout(toWad(0.01))
+
+      const usdcBorrowed = new BN(oneToken.toString())
+      const daiBorrowed = usdcBorrowed.add(usdcBorrowed.div(new BN('100')))
+      const fyDaiDebt = await calculateTrade(pool, buyDai, daiBorrowed)
+
+      const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+
+      await controller.addDelegate(proxy.address, { from: user1 })
+      await proxy.borrowUSDCForMaximumFYDaiApprove(pool.address)
+      await proxy.borrowUSDCForMaximumFYDai(
+        pool.address,
+        WETH,
+        maturity1,
+        user2,
+        oneToken,
+        fyDaiTokens1,
+        {
+          from: user1,
+        }
+      )
+      const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
+
+      assert.equal(await usdc.balanceOf(user2), oneToken.toString())
+      almostEqual(debtAfter.toString(), debtBefore.add(fyDaiDebt).toString(), debtAfter.div(new BN('1000000')).toString())
+    })
+
     it('borrows usdc with a signature', async () => {
       // Authorize borrowProxy for the controller
       const controllerDigest = getSignatureDigest(
@@ -255,7 +283,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
       })
 
       it('repays debt with USDC', async () => {
-        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+
         const usdcRepayment = new BN(oneToken.div('2').toString())
         // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
         const daiRepayment = usdcRepayment
@@ -283,6 +311,38 @@ contract('BorrowProxy - USDC', async (accounts) => {
         almostEqual(debtAfter.toString(), debtBefore.sub(fyDaiRepayment).toString(), debtBefore.div(new BN('1000000')).toString())
         expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
       })
+
+      it('repays debt with a fee', async () => {
+        await psm.setTin(toWad(0.01))
+  
+        const usdcRepayment = new BN(oneToken.div('2').toString())
+        // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
+        const daiRepayment = usdcRepayment.sub(usdcRepayment.div(new BN('100')))
+        const fyDaiRepayment = await calculateTrade(pool, sellDai, daiRepayment)
+
+        // We borrowed 1 USDC before
+        const usdcBefore = await usdc.balanceOf(user1)
+        const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+        await usdc.approve(proxy.address, MAX, { from: user1 })
+        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+        await proxy.repayMinimumFYDaiDebtForUSDC(
+          pool.address,
+          WETH,
+          maturity1,
+          user1,
+          usdcRepayment,
+          0,
+          {
+            from: user1,
+          }
+        )
+        const usdcAfter = await usdc.balanceOf(user1)
+        const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
+
+        almostEqual(debtAfter.toString(), debtBefore.sub(fyDaiRepayment).toString(), debtBefore.div(new BN('1000000')).toString())
+        expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
+      })
+  
 
       it("doesn't repay with usdc if slippage exceeded", async () => {
         const usdcRepayment = new BN(oneToken.div('2').toString())
@@ -412,7 +472,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
       it('repays all debt with USDC', async () => {
         await usdc.mint(user1, oneToken.mul("2"), { from: user1 })
 
-        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
         const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
@@ -440,7 +500,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
       it("doesn't repay all with usdc if slippage exceeded", async () => {
         await usdc.mint(user1, oneToken.mul("2"), { from: user1 })
 
-        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
         const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
@@ -469,7 +529,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         await controller.revokeDelegate(proxy.address, { from: user1 })
         await usdc.mint(user1, oneToken.mul("2"), { from: user1 })
 
-        const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
         const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
         // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
