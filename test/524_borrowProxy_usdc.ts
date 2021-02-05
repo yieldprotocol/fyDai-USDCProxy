@@ -10,7 +10,7 @@ const DSProxyRegistry = artifacts.require('ProxyRegistry')
 import { signatures } from '@yield-protocol/utils'
 const { getSignatureDigest, getDaiDigest, getPermitDigest, privateKey0, signPacked, getDomainSeparator } = signatures
 import { WETH, spot, wethTokens1, toWad, toRay, mulRay, bnify, MAX, functionSignature, name, chainId } from './shared/utils'
-import { sellDai, buyFYDai } from './shared/yieldspace'
+import { sellDai, buyDai, buyFYDai } from './shared/yieldspace'
 import { MakerEnvironment, YieldEnvironmentLite, YieldSpace, Contract } from './shared/fixtures'
 
 // @ts-ignore
@@ -119,7 +119,18 @@ contract('BorrowProxy - USDC', async (accounts) => {
       await pool.sellFYDai(user1, user1, fyDaiTokens1.div(10), { from: user1 })
     })
 
-    it('borrows usdc for maximum fyDai', async () => {
+    it.only('borrows usdc for maximum fyDai', async () => {
+      const usdcBorrowed = oneToken
+
+      const now = new BN((await web3.eth.getBlock(await web3.eth.getBlockNumber())).timestamp)
+      const fyDaiDebt = new BN(buyDai(
+        (await pool.getDaiReserves()).toString(),
+        (await pool.getFYDaiReserves()).toString(),
+        usdcBorrowed.toString(),
+        (new BN(maturity1).sub(now)).toString(),
+      ).toString())
+      const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
+
       await controller.addDelegate(proxy.address, { from: user1 })
       await proxy.borrowUSDCForMaximumFYDaiApprove(pool.address)
       await proxy.borrowUSDCForMaximumFYDai(
@@ -133,8 +144,10 @@ contract('BorrowProxy - USDC', async (accounts) => {
           from: user1,
         }
       )
+      const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
 
       assert.equal(await usdc.balanceOf(user2), oneToken.toString())
+      almostEqual(debtAfter.toString(), debtBefore.add(fyDaiDebt).toString(), debtAfter.div(new BN('1000000')).toString())
     })
 
     it('borrows usdc with a signature', async () => {
