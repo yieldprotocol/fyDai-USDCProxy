@@ -316,7 +316,6 @@ contract('BorrowProxy - USDC', async (accounts) => {
         await psm.setTin(toWad(0.01))
   
         const usdcRepayment = new BN(oneToken.div('2').toString())
-        // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
         const daiRepayment = usdcRepayment.sub(usdcRepayment.div(new BN('100')))
         const fyDaiRepayment = await calculateTrade(pool, sellDai, daiRepayment)
 
@@ -343,6 +342,64 @@ contract('BorrowProxy - USDC', async (accounts) => {
         expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
       })
   
+      it.only('repays debt with USDC, without trading', async () => {
+        await controller.revokeDelegate(proxy.address, { from: user1 })
+        await psm.setTin(toWad(0.01))
+
+        // Authorize USDC
+        const usdcDigest = getPermitDigest(
+          await usdc.name(),
+          usdc.address,
+          '2',
+          chainId,
+          {
+            owner: user1,
+            spender: proxy.address,
+            value: MAX,
+          },
+          bnify(await usdc.nonces(user1)),
+          MAX
+        )
+        usdcSig = signPacked(usdcDigest, privateKey0)
+          
+        // Authorize borrowProxy for the controller
+        const controllerDigest = getSignatureDigest(
+          name,
+          controller.address,
+          chainId,
+          {
+            user: user1,
+            delegate: proxy.address,
+          },
+          (await controller.signatureCount(user1)).toString(),
+          MAX
+        )
+        controllerSig = signPacked(controllerDigest, privateKey0)
+
+        const usdcRepayment = new BN(oneToken.div('2').toString())
+        const daiRepayment = usdcRepayment.sub(usdcRepayment.div(new BN('100')))
+
+        // We borrowed 1 USDC before
+        const usdcBefore = await usdc.balanceOf(user1)
+        const debtBefore = await controller.debtDai(WETH, maturity1, user1)
+        await usdc.approve(proxy.address, MAX, { from: user1 })
+        await proxy.repayDaiDebtWithUSDCWithSignature(
+          WETH,
+          maturity1,
+          user1,
+          usdcRepayment,
+          usdcSig,
+          controllerSig,
+          {
+            from: user1,
+          }
+        )
+        const usdcAfter = await usdc.balanceOf(user1)
+        const debtAfter = await controller.debtDai(WETH, maturity1, user1)
+
+        almostEqual(debtAfter.toString(), debtBefore.sub(daiRepayment).toString(), debtBefore.div(new BN('1000000')).toString())
+        expect(usdcAfter.toString()).to.be.bignumber.eq(usdcBefore.sub(usdcRepayment).toString())
+      })
 
       it("doesn't repay with usdc if slippage exceeded", async () => {
         const usdcRepayment = new BN(oneToken.div('2').toString())

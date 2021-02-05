@@ -256,6 +256,30 @@ contract BorrowProxy is DecimalMath {
         return usdcIn;
     }
 
+    /// @dev Repay an exact amount of Dai-denominated debt in Controller using USDC.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param usdcRepayment Amount of USDC that should be spent on the repayment.
+    function repayDaiDebtWithUSDC(
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 usdcRepayment
+    )
+        public
+        returns (uint256)
+    {
+        usdc.transferFrom(msg.sender, address(this), usdcRepayment);
+        psm.sellGem(address(this), usdcRepayment);
+        uint256 daiRepayment = (usdcRepayment * (1e18 - psm.tin())) / 1e18;
+        controller.repayDai(collateral, maturity, address(this), to, daiRepayment);
+
+        return daiRepayment;
+    }
+
     /// @dev Sell fyDai for Dai
     /// Caller must have approved the fyDai transfer with `fyDai.approve(fyDaiIn)` or with `sellFYDaiWithSignature`.
     /// Caller must have approved the proxy using`pool.addDelegate(borrowProxy)` or with `sellFYDaiWithSignature`.
@@ -484,7 +508,6 @@ contract BorrowProxy is DecimalMath {
         // Send the fyDai to the Treasury
         if (pool.fyDai().allowance(address(this), treasury) < type(uint112).max)
             pool.fyDai().approve(treasury, type(uint256).max);
-
     }
 
     /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM, and then for fyDai at pool rates, with a minimum of fyDai debt required to be paid.
@@ -513,6 +536,42 @@ contract BorrowProxy is DecimalMath {
         if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         return repayMinimumFYDaiDebtForUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
+    }
+
+    /// @dev Set proxy approvals for `repayDaiDebtWithUSDC`
+    function repayDaiDebtWithUSDCApprove() public {
+        // Send the USDC to the PSM
+        if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // USDC reduces allowances when set to MAX
+            usdc.approve(address(psm.gemJoin()), type(uint256).max);
+        
+        // Send the Dai to the Treasury
+        if (dai.allowance(address(this), address(treasury)) < type(uint256).max)
+            dai.approve(address(treasury), type(uint256).max);
+    }
+
+    /// @dev Repay an amount of fyDai debt in Controller using a given amount of USDC exchanged Dai in Maker's PSM.
+    /// If the amount of Dai obtained by selling USDC exceeds the existing debt, the surplus will be locked in the proxy.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
+    /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
+    /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
+    function repayDaiDebtWithUSDCWithSignature(
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 repaymentInUSDC,
+        bytes memory usdcSig,
+        bytes memory controllerSig
+    )
+        public
+        returns (uint256)
+    {
+        repayDaiDebtWithUSDCApprove();
+        if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
+        if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
+        return repayDaiDebtWithUSDC(collateral, maturity, to, repaymentInUSDC);
     }
 
     /// @dev Repay all debt in Controller using for a maximum amount of USDC, reverting if surpassed.
