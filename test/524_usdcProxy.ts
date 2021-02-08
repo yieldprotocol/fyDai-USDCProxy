@@ -1,7 +1,7 @@
 const FYDai = artifacts.require('FYDai')
 const DssPsm = artifacts.require('DssPsmMock')
 const USDC = artifacts.require('USDCMock')
-const BorrowProxy = artifacts.require('BorrowProxy')
+const USDCProxy = artifacts.require('USDCProxy')
 const DSProxy = artifacts.require('DSProxy')
 const DSProxyFactory = artifacts.require('DSProxyFactory')
 const DSProxyRegistry = artifacts.require('ProxyRegistry')
@@ -59,7 +59,7 @@ async function calculateTrade(pool: Contract, trade: any, amount: any): Promise<
   )
 }
 
-contract('BorrowProxy - USDC', async (accounts) => {
+contract('USDCProxy - USDC', async (accounts) => {
   let [owner, user1, user2] = accounts
 
   let vault: YieldEnvironmentLite
@@ -112,8 +112,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
     psm = await DssPsm.new(usdc.address, dai.address)
     await dai.rely(await psm.daiJoin())
 
-    // Setup BorrowProxy
-    proxy = await BorrowProxy.new(controller.address, psm.address, { from: owner })
+    // Setup USDCProxy
+    proxy = await USDCProxy.new(controller.address, psm.address, { from: owner })
 
     // Allow owner to mint fyDai the sneaky way, without recording a debt in controller
     await fyDai.orchestrate(owner, functionSignature('mint(address,uint256)'), { from: owner })
@@ -133,9 +133,10 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
   describe('borrowing', () => {
     beforeEach(async () => {
-      // Post some weth to controller via the proxy to be able to borrow
-      // without requiring an `approve`!
-      await proxy.post(user1, { from: user1, value: bnify(wethTokens1).mul(2).toString() })
+      // Post some weth to controller
+      await weth.deposit({ from: user1, value: bnify(wethTokens1).mul(2).toString() })
+      await weth.approve(treasury.address, MAX, { from: user1 })
+      await controller.post(WETH, user1, user1, bnify(wethTokens1).mul(2).toString(), { from: user1 })
 
       // Give some fyDai to user1
       await fyDai.mint(user1, fyDaiTokens1, { from: owner })
@@ -258,7 +259,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         proxy.borrowUSDCForMaximumFYDai(pool.address, WETH, maturity1, user2, oneToken, 0, {
           from: user1,
         }),
-        'BorrowProxy: Too much fyDai required'
+        'USDCProxy: Too much fyDai required'
       )
     })
 
@@ -282,8 +283,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
         const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
-        await proxy.repayMinimumFYDaiDebtForUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
+        await proxy.repayDebtEarlyWithUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
           from: user1,
         })
         const usdcAfter = await usdc.balanceOf(user1)
@@ -308,8 +309,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
         const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
-        await proxy.repayMinimumFYDaiDebtForUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
+        await proxy.repayDebtEarlyWithUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
           from: user1,
         })
         const usdcAfter = await usdc.balanceOf(user1)
@@ -364,7 +365,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
         const debtBefore = await controller.debtDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayDaiDebtWithUSDCWithSignature(WETH, maturity1, user1, usdcRepayment, usdcSig, controllerSig, {
+        await proxy.repayDebtMatureWithUSDCWithSignature(WETH, maturity1, user1, usdcRepayment, usdcSig, controllerSig, {
           from: user1,
         })
         const usdcAfter = await usdc.balanceOf(user1)
@@ -381,12 +382,12 @@ contract('BorrowProxy - USDC', async (accounts) => {
       it("doesn't repay with usdc if slippage exceeded", async () => {
         const usdcRepayment = new BN(oneToken.div('2').toString())
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
         await expectRevert(
-          proxy.repayMinimumFYDaiDebtForUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, MAX, {
+          proxy.repayDebtEarlyWithUSDC(pool.address, WETH, maturity1, user1, usdcRepayment, MAX, {
             from: user1,
           }),
-          'BorrowProxy: Not enough debt repaid'
+          'USDCProxy: Not enough debt repaid'
         )
       })
 
@@ -425,7 +426,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
 
         const debtBefore = await controller.debtDai(WETH, maturity1, user1)
 
-        await proxy.repayMinimumFYDaiDebtForUSDCWithSignature(
+        await proxy.repayDebtEarlyWithUSDCWithSignature(
           pool.address,
           WETH,
           maturity1,
@@ -477,7 +478,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const debtBefore = await controller.debtDai(WETH, maturity1, user1)
 
         const calldata = proxy.contract.methods
-          .repayMinimumFYDaiDebtForUSDCWithSignature(
+          .repayDebtEarlyWithUSDCWithSignature(
             pool.address,
             WETH,
             maturity1,
@@ -506,8 +507,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
 
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
-        await proxy.repayAllWithUSDC(pool.address, WETH, maturity1, user1, MAX, {
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
+        await proxy.repayAllEarlyWithUSDC(pool.address, WETH, maturity1, user1, MAX, {
           from: user1,
         })
         const usdcAfter = await usdc.balanceOf(user1)
@@ -530,13 +531,13 @@ contract('BorrowProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
 
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
 
         await expectRevert(
-          proxy.repayAllWithUSDC(pool.address, WETH, maturity1, user1, 0, {
+          proxy.repayAllEarlyWithUSDC(pool.address, WETH, maturity1, user1, 0, {
             from: user1,
           }),
-          'BorrowProxy: Too much USDC required'
+          'USDCProxy: Too much USDC required'
         )
       })
 
@@ -581,8 +582,8 @@ contract('BorrowProxy - USDC', async (accounts) => {
         controllerSig = signPacked(controllerDigest, privateKey0)
 
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayMinimumFYDaiDebtForUSDCApprove(pool.address)
-        await proxy.repayAllWithUSDCWithSignature(pool.address, WETH, maturity1, user1, MAX, usdcSig, controllerSig, {
+        await proxy.repayDebtEarlyWithUSDCApprove(pool.address)
+        await proxy.repayAllEarlyWithUSDCWithSignature(pool.address, WETH, maturity1, user1, MAX, usdcSig, controllerSig, {
           from: user1,
         })
         const usdcAfter = await usdc.balanceOf(user1)
@@ -677,7 +678,7 @@ contract('BorrowProxy - USDC', async (accounts) => {
               from: user1,
             }
           ),
-          'BorrowProxy: Not enough fyDai debt repaid'
+          'USDCProxy: Not enough fyDai debt repaid'
         )
       })
       */
