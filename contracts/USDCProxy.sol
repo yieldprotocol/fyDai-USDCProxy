@@ -87,7 +87,7 @@ contract USDCProxy is DecimalMath {
     /// @param to Yield Vault to repay fyDai debt for.
     /// @param usdcRepayment Exact amount of USDC that should be spent on the repayment.
     /// @param minFYDaiRepayment Minimum amount of fyDai debt to repay.
-    function repayDebtEarlyWithUSDC(
+    function repayDebtEarly(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
@@ -117,7 +117,7 @@ contract USDCProxy is DecimalMath {
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
     /// @param maxUSDCIn Maximum amount of USDC that should be spent on the repayment.
-    function repayAllEarlyWithUSDC(
+    function repayAllEarly(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
@@ -146,22 +146,70 @@ contract USDCProxy is DecimalMath {
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
-    /// @param usdcRepayment Amount of USDC that should be spent on the repayment.
-    function repayDebtMatureWithUSDC(
+    /// @param daiRepayment Amount of Dai that should be bought from the PSM for the repayment.
+    /// @return Amount of USDC that was taken from the user for the repayment.
+    function repayDebtMature(
         bytes32 collateral,
         uint256 maturity,
         address to,
-        uint256 usdcRepayment
+        uint256 daiRepayment
     )
         public
         returns (uint256)
     {
+        return _repayDebtMature(
+            collateral,
+            maturity,
+            to,
+            daiRepayment
+        );
+    }
+
+    /// @dev Repay all debt for an user and series in Controller using USDC.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @return Amount of USDC that was taken from the user for the repayment.
+    function repayAllMature(
+        bytes32 collateral,
+        uint256 maturity,
+        address to
+    )
+        public
+        returns (uint256)
+    {
+        return _repayDebtMature(
+            collateral,
+            maturity,
+            to,
+            controller.debtDai(collateral, maturity, msg.sender)
+        );
+    }
+
+    /// @dev Repay an exact amount of Dai-denominated debt in Controller using USDC.
+    /// Must have approved the operator with `controller.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// Must have approved the operator with `pool.addDelegate(borrowProxy.address)` or with `repayAllWithFYDaiWithSignature`.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @return Amount of USDC that was taken from the user for the repayment.
+    function _repayDebtMature(
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 daiRepayment
+    )
+        internal
+        returns (uint256)
+    {
+        uint256 usdcRepayment = (daiRepayment * 1e18) / (1e18 - psm.tin());
         usdc.transferFrom(msg.sender, address(this), usdcRepayment);
         psm.sellGem(address(this), usdcRepayment);
-        uint256 daiRepayment = (usdcRepayment * (1e18 - psm.tin())) / 1e18;
         controller.repayDai(collateral, maturity, address(this), to, daiRepayment);
 
-        return daiRepayment;
+        return usdcRepayment;
     }
 
     /// --------------------------------------------------
@@ -205,8 +253,8 @@ contract USDCProxy is DecimalMath {
         return borrowUSDCForMaximumFYDai(pool, collateral, maturity, to, usdcToBorrow, maximumFYDai);
     }
 
-    /// @dev Set proxy approvals for `repayDebtEarlyWithUSDC` with a given pool.
-    function repayDebtEarlyWithUSDCApprove(IPool pool) public {
+    /// @dev Set proxy approvals for `repayDebtEarly` with a given pool.
+    function repayDebtEarlyApprove(IPool pool) public {
         // Send the USDC to the PSM
         if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // USDC reduces allowances when set to MAX
             usdc.approve(address(psm.gemJoin()), type(uint256).max);
@@ -229,7 +277,7 @@ contract USDCProxy is DecimalMath {
     /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
     /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
     /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
-    function repayDebtEarlyWithUSDCWithSignature(
+    function repayDebtEarlyWithSignature(
         IPool pool,
         bytes32 collateral,
         uint256 maturity,
@@ -242,14 +290,39 @@ contract USDCProxy is DecimalMath {
         public
         returns (uint256)
     {
-        repayDebtEarlyWithUSDCApprove(pool);
+        repayDebtEarlyApprove(pool);
         if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
-        return repayDebtEarlyWithUSDC(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
+        return repayDebtEarly(pool, collateral, maturity, to, repaymentInUSDC, fyDaiDebt);
     }
 
-    /// @dev Set proxy approvals for `repayDebtMatureWithUSDC`
-    function repayDebtMatureWithUSDCApprove() public {
+    /// @dev Repay all debt in Controller using for a maximum amount of USDC, reverting if surpassed.
+    /// @param collateral Valid collateral type.
+    /// @param maturity Maturity of an added series
+    /// @param to Yield Vault to repay fyDai debt for.
+    /// @param maxUSDCIn Maximum amount of USDC that should be spent on the repayment.
+    /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
+    /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
+    function repayAllEarlyWithSignature(
+        IPool pool,
+        bytes32 collateral,
+        uint256 maturity,
+        address to,
+        uint256 maxUSDCIn,
+        bytes memory usdcSig,
+        bytes memory controllerSig
+    )
+        public
+        returns (uint256)
+    {
+        repayDebtEarlyApprove(pool); // Same permissions
+        if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
+        if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
+        return repayAllEarly(pool, collateral, maturity, to, maxUSDCIn);
+    }
+
+    /// @dev Set proxy approvals for `repayDebtMature`
+    function repayDebtMatureApprove() public {
         // Send the USDC to the PSM
         if (usdc.allowance(address(this), address(psm.gemJoin())) < type(uint112).max) // USDC reduces allowances when set to MAX
             usdc.approve(address(psm.gemJoin()), type(uint256).max);
@@ -267,7 +340,7 @@ contract USDCProxy is DecimalMath {
     /// @param repaymentInUSDC Exact amount of USDC that should be spent on the repayment.
     /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
     /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
-    function repayDebtMatureWithUSDCWithSignature(
+    function repayDebtMatureWithSignature(
         bytes32 collateral,
         uint256 maturity,
         address to,
@@ -278,34 +351,31 @@ contract USDCProxy is DecimalMath {
         public
         returns (uint256)
     {
-        repayDebtMatureWithUSDCApprove();
+        repayDebtMatureApprove();
         if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
-        return repayDebtMatureWithUSDC(collateral, maturity, to, repaymentInUSDC);
+        return repayDebtMature(collateral, maturity, to, repaymentInUSDC);
     }
 
-    /// @dev Repay all debt in Controller using for a maximum amount of USDC, reverting if surpassed.
+    /// @dev Repay all debt for an user in Controller for a mature series using Maker's PSM.
     /// @param collateral Valid collateral type.
     /// @param maturity Maturity of an added series
     /// @param to Yield Vault to repay fyDai debt for.
-    /// @param maxUSDCIn Maximum amount of USDC that should be spent on the repayment.
     /// @param usdcSig packed signature for permit of USDC transfers to this proxy. Ignored if '0x'.
     /// @param controllerSig packed signature for delegation of this proxy in the controller. Ignored if '0x'.
-    function repayAllEarlyWithUSDCWithSignature(
-        IPool pool,
+    function repayAllMatureWithSignature(
         bytes32 collateral,
         uint256 maturity,
         address to,
-        uint256 maxUSDCIn,
         bytes memory usdcSig,
         bytes memory controllerSig
     )
         public
         returns (uint256)
     {
-        repayDebtEarlyWithUSDCApprove(pool); // Same permissions
+        repayDebtMatureApprove(); // Same permissions
         if (usdcSig.length > 0) usdc.permitPacked(address(this), usdcSig);
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
-        return repayAllEarlyWithUSDC(pool, collateral, maturity, to, maxUSDCIn);
+        return repayAllMature(collateral, maturity, to);
     }
 }
