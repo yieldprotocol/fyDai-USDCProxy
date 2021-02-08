@@ -22,16 +22,16 @@ const func = async function ({ deployments, getNamedAccounts, getChainId }) {
     })
     args = [controller.address, psm.address] // TODO: Code a ControllerMock
   } else {
-    args = require(`./borrowProxy-args-${chainId}`) 
+    args = require(`./usdcProxy-args-${chainId}`) 
   }
 
-  const borrowProxy = await deploy('BorrowProxy', {
+  const usdcProxy = await deploy('USDCProxy', {
     from: deployer,
     deterministicDeployment: true,
     args: args,
   })
-  console.log(`Deployed BorrowProxy to ${borrowProxy.address}`);
+  console.log(`Deployed USDCProxy to ${usdcProxy.address}`);
 };
 
 module.exports = func;
-module.exports.tags = ["BorrowProxy"];
+module.exports.tags = ["USDCProxy"];
