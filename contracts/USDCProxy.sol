@@ -378,4 +378,18 @@ contract USDCProxy is DecimalMath {
         if (controllerSig.length > 0) controller.addDelegatePacked(controllerSig);
         return repayAllMature(collateral, maturity, to);
     }
+
+    /// --------------------------------------------------
+    /// Convenience functions
+    /// --------------------------------------------------
+
+    /// @dev Return PSM's tin, so the frontend needs to do one less call.
+    function tin() public view returns (uint256) {
+        return psm.tin();
+    }
+
+    /// @dev Return PSM's tout, so the frontend needs to do one less call.
+    function tout() public view returns (uint256) {
+        return psm.tout();
+    }
 }
