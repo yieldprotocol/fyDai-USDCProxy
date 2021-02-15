@@ -13,12 +13,19 @@ import "dss-interfaces/src/dss/AuthGemJoinAbstract.sol";
 import "dss-interfaces/src/dss/DaiAbstract.sol";
 import "./interfaces/IUSDC.sol";
 import "./interfaces/DssPsmAbstract.sol";
-import "hardhat/console.sol";
 
+
+library RoundingMath {
+    function divrup(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        require (y > 0, "USDCProxy: Division by zero");
+        return x % y == 0 ? x / y : x / y + 1;
+    }
+}
 
 contract USDCProxy is DecimalMath {
     using SafeCast for uint256;
     using SafeMath for uint256;
+    using RoundingMath for uint256;
     using YieldAuth for DaiAbstract;
     using YieldAuth for IFYDai;
     using YieldAuth for IUSDC;
@@ -64,8 +71,9 @@ contract USDCProxy is DecimalMath {
     {
         pool.fyDai().approve(address(pool), type(uint256).max); // TODO: Move to right place
         
-        uint256 fee = usdcToBorrow.mul(psm.tout()) / 1e18; // tout has 18 decimals
-        uint256 daiToBuy = usdcToBorrow.add(fee) * 1e12; // USDC has 6 decimals, Dai 18.
+        uint256 usdcToBorrow18 = usdcToBorrow.mul(1e12); // USDC has 6 decimals
+        uint256 fee = usdcToBorrow18.mul(psm.tout()) / 1e18; // tout has 18 decimals
+        uint256 daiToBuy = usdcToBorrow18.add(fee);
 
         uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBuy.toUint128()); // If not calculated on-chain, there will be fyDai left as slippage
         require (fyDaiToBorrow <= maximumFYDai, "USDCProxy: Too much fyDai required");
@@ -73,7 +81,7 @@ contract USDCProxy is DecimalMath {
         // The collateral for this borrow needs to have been posted beforehand
         controller.borrow(collateral, maturity, msg.sender, address(this), fyDaiToBorrow);
         pool.buyDai(address(this), address(this), daiToBuy.toUint128());
-        psm.buyGem(to, usdcToBorrow);
+        psm.buyGem(to, usdcToBorrow); // PSM takes USDC amounts with 6 decimals
 
         return fyDaiToBorrow;
     }
@@ -98,11 +106,12 @@ contract USDCProxy is DecimalMath {
         public
         returns (uint256)
     {
-        uint256 fee = usdcRepayment.mul(psm.tin()) / 1e18; // Fees in PSM are fixed point in WAD
-        uint256 daiObtained = usdcRepayment.sub(fee); // If not right, the `sellDai` might revert.
+        uint256 usdcRepayment18 = usdcRepayment.mul(1e12); // USDC has 6 decimals
+        uint256 fee = usdcRepayment18.mul(psm.tin()) / 1e18; // Fees in PSM are fixed point in WAD
+        uint256 daiObtained = usdcRepayment18.sub(fee); // If not right, the `sellDai` might revert.
 
         usdc.transferFrom(msg.sender, address(this), usdcRepayment);
-        psm.sellGem(address(this), usdcRepayment); // Thanks for not returning how much dai was the USDC sold for.
+        psm.sellGem(address(this), usdcRepayment); // PSM takes USDC amounts with 6 decimals
         uint256 fyDaiRepayment =  pool.sellDai(address(this), address(this), daiObtained.toUint128());
         require(fyDaiRepayment >= minFYDaiRepayment, "USDCProxy: Not enough debt repaid");
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiRepayment);
@@ -129,7 +138,8 @@ contract USDCProxy is DecimalMath {
     {
         uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
         uint256 daiIn = pool.buyFYDaiPreview(fyDaiDebt.toUint128());
-        uint256 usdcIn = (daiIn * 1e18) / (1e18 + psm.tin()); // Fixed point division with 18 decimals
+        uint256 usdcIn18 = (daiIn * 1e18).divrup(1e18 + psm.tin()); // Fixed point division with 18 decimals - We are working an usdc value from a dai one, so we round up.
+        uint256 usdcIn = usdcIn18.divrup(1e12); // We are working an usdc value from a dai one, so we round up.
 
         require (usdcIn <= maxUSDCIn, "USDCProxy: Too much USDC required");
         usdc.transferFrom(msg.sender, address(this), usdcIn);
@@ -204,7 +214,8 @@ contract USDCProxy is DecimalMath {
         internal
         returns (uint256)
     {
-        uint256 usdcRepayment = (daiRepayment * 1e18) / (1e18 - psm.tin());
+        uint256 usdcRepayment18 = (daiRepayment * 1e18).divrup(1e18 - psm.tin());
+        uint256 usdcRepayment = usdcRepayment18.divrup(1e12);
         usdc.transferFrom(msg.sender, address(this), usdcRepayment);
         psm.sellGem(address(this), usdcRepayment);
         controller.repayDai(collateral, maturity, address(this), to, daiRepayment);
