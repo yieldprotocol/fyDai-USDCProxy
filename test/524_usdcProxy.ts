@@ -6,6 +6,7 @@ const DSProxy = artifacts.require('DSProxy')
 const DSProxyFactory = artifacts.require('DSProxyFactory')
 const DSProxyRegistry = artifacts.require('ProxyRegistry')
 
+import { BigNumber, BigNumberish } from 'ethers'
 import { signatures } from '@yield-protocol/utils'
 const { getSignatureDigest, getDaiDigest, getPermitDigest, privateKey0, signPacked, getDomainSeparator } = signatures
 import {
@@ -86,6 +87,7 @@ contract('USDCProxy - USDC', async (accounts) => {
   const daiTokens1 = mulRay(daiDebt1, rate1)
   const fyDaiTokens1 = daiTokens1
   const oneToken = toWad(1)
+  const oneUSDC = BigNumber.from("1000000")
 
   let maturity1: number
   let usdcSig: any
@@ -144,19 +146,19 @@ contract('USDCProxy - USDC', async (accounts) => {
       await pool.sellFYDai(user1, user1, fyDaiTokens1.div(10), { from: user1 })
     })
 
-    it('borrows usdc for maximum fyDai', async () => {
-      const usdcBorrowed = oneToken
-      const fyDaiDebt = await calculateTrade(pool, buyDai, usdcBorrowed)
+    it.only('borrows usdc for maximum fyDai', async () => {
+      const usdcBorrowed = oneUSDC
+      const fyDaiDebt = await calculateTrade(pool, buyDai, oneToken) // To buy 1 USDC we will have to buy 1 Dai from a Pool
       const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
 
       await controller.addDelegate(proxy.address, { from: user1 })
       await proxy.borrowUSDCForMaximumFYDaiApprove(pool.address)
-      await proxy.borrowUSDCForMaximumFYDai(pool.address, WETH, maturity1, user2, oneToken, fyDaiTokens1, {
+      await proxy.borrowUSDCForMaximumFYDai(pool.address, WETH, maturity1, user2, usdcBorrowed, fyDaiTokens1, {
         from: user1,
       })
       const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
 
-      assert.equal(await usdc.balanceOf(user2), oneToken.toString())
+      assert.equal(await usdc.balanceOf(user2), usdcBorrowed.toString())
       almostEqual(
         debtAfter.toString(),
         debtBefore.add(fyDaiDebt).toString(),

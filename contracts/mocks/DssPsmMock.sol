@@ -57,7 +57,7 @@ contract DssPsmMock {
     // --- Primary Functions ---
     function sellGem(address usr, uint256 gemAmt) external {
         uint256 fee = mul(gemAmt, tin) / WAD;
-        uint256 daiAmt = sub(gemAmt, fee);
+        uint256 daiAmt = sub(gemAmt, fee) * 1e12; // USDC has 6 decimals, Dai 18.
         gemJoin.join(address(this), gemAmt, msg.sender);
         daiJoin.exit(usr, daiAmt);
 
@@ -66,7 +66,7 @@ contract DssPsmMock {
 
     function buyGem(address usr, uint256 gemAmt) external {
         uint256 fee = mul(gemAmt, tout) / WAD;
-        uint256 daiAmt = add(gemAmt, fee);
+        uint256 daiAmt = add(gemAmt, fee) * 1e12; // USDC has 6 decimals, Dai 18.
         require(dai.transferFrom(msg.sender, address(this), daiAmt), "DssPsm/failed-transfer");
         daiJoin.join(address(this), daiAmt);
         gemJoin.exit(usr, gemAmt);

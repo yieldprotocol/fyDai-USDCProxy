@@ -64,8 +64,8 @@ contract USDCProxy is DecimalMath {
     {
         pool.fyDai().approve(address(pool), type(uint256).max); // TODO: Move to right place
         
-        uint256 fee = usdcToBorrow.mul(psm.tout()) / 1e18;
-        uint256 daiToBuy = usdcToBorrow.add(fee);
+        uint256 fee = usdcToBorrow.mul(psm.tout()) / 1e18; // tout has 18 decimals
+        uint256 daiToBuy = usdcToBorrow.add(fee) * 1e12; // USDC has 6 decimals, Dai 18.
 
         uint256 fyDaiToBorrow = pool.buyDaiPreview(daiToBuy.toUint128()); // If not calculated on-chain, there will be fyDai left as slippage
         require (fyDaiToBorrow <= maximumFYDai, "USDCProxy: Too much fyDai required");

@@ -10,6 +10,7 @@ contract USDCMock is ERC20Permit {
     // bytes32 constant override public PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
 
     constructor () public ERC20Permit("USD Coin", "USDC") {
+        _setupDecimals(6);
     }
 
     function version() public pure override returns(string memory) { return "2"; }
