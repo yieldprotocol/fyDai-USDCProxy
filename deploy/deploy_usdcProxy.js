@@ -4,6 +4,7 @@ const func = async function ({ deployments, getNamedAccounts, getChainId }) {
   const chainId = await getChainId()
 
   let args
+  /*
   if (chainId === '31337') {
     const usdc = await deploy('USDCMock', {
       from: deployer,
@@ -24,6 +25,9 @@ const func = async function ({ deployments, getNamedAccounts, getChainId }) {
   } else {
     args = require(`./usdcProxy-args-${chainId}`) 
   }
+  */
+
+  args = require(`../deploy-args/usdcProxy-${chainId}`) 
 
   const usdcProxy = await deploy('USDCProxy', {
     from: deployer,
