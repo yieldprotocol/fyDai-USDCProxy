@@ -11,10 +11,10 @@ contract DaiJoinMock {
     }
 
     function join(address, uint wad) external {
-        dai.burn(msg.sender, wad);
+        dai.transferFrom(msg.sender, address(this), wad);
     }
 
     function exit(address usr, uint wad) external {
-        dai.mint(usr, wad);
+        dai.transfer(usr, wad);
     }
 }

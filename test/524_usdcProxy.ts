@@ -117,6 +117,9 @@ contract('USDCProxy - USDC', async (accounts) => {
     // Setup USDCProxy
     proxy = await USDCProxy.new(controller.address, psm.address, { from: owner })
 
+    // Load PSM's MockDaiJoin with Dai
+    dai.mint(await psm.daiJoin(), bnify(wethTokens1).mul(10).toString())
+
     // Allow owner to mint fyDai the sneaky way, without recording a debt in controller
     await fyDai.orchestrate(owner, functionSignature('mint(address,uint256)'), { from: owner })
 
