@@ -1,0 +1,354 @@
+{
+  "address": "0x5414e1ACBe734a4a71901e35Edb5eF8Dd06e56c2",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "gem_",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IERC20",
+          "name": "dai_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "BuyGem",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "usr",
+          "type": "address"
+        }
+      ],
+      "name": "Deny",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "what",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "data",
+          "type": "uint256"
+        }
+      ],
+      "name": "File",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "usr",
+          "type": "address"
+        }
+      ],
+      "name": "Rely",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "SellGem",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "usr",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gemAmt",
+          "type": "uint256"
+        }
+      ],
+      "name": "buyGem",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "dai",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "daiJoin",
+      "outputs": [
+        {
+          "internalType": "contract DaiJoinMock",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "gemJoin",
+      "outputs": [
+        {
+          "internalType": "contract AuthGemJoinMock",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "usr",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gemAmt",
+          "type": "uint256"
+        }
+      ],
+      "name": "sellGem",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tin_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setTin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tout_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setTout",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tin",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "tout",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xc0118898e60dc2128e34d5199fa1aadd2c9399b4ea6589fada7fbf4a0ef84586",
+  "receipt": {
+    "to": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+    "from": "0x5AD7799f02D5a829B2d6FA085e6bd69A872619D5",
+    "contractAddress": null,
+    "transactionIndex": 0,
+    "gasUsed": "920201",
+    "logsBloom": "0x00000000200000000400000000000000000000100000000000000020000000000020000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000010000000000012000000000000000000000000000000000000000000",
+    "blockHash": "0x3054ce88b1a8170d453ce360a219d8c098833e552d1e62832b052132c6c3ee46",
+    "transactionHash": "0xc0118898e60dc2128e34d5199fa1aadd2c9399b4ea6589fada7fbf4a0ef84586",
+    "logs": [
+      {
+        "transactionIndex": 0,
+        "blockNumber": 23548982,
+        "transactionHash": "0xc0118898e60dc2128e34d5199fa1aadd2c9399b4ea6589fada7fbf4a0ef84586",
+        "address": "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa",
+        "topics": [
+          "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+          "0x0000000000000000000000005414e1acbe734a4a71901e35edb5ef8dd06e56c2",
+          "0x000000000000000000000000eccc2f204f26d0ade7b4c6e0250db04f3456bade"
+        ],
+        "data": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "logIndex": 0,
+        "blockHash": "0x3054ce88b1a8170d453ce360a219d8c098833e552d1e62832b052132c6c3ee46"
+      }
+    ],
+    "blockNumber": 23548982,
+    "cumulativeGasUsed": "920201",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xF47e7B0b911523aB30D282Cfa229373a964e1Bb7",
+    "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
+  ],
+  "solcInputHash": "dabaa7b4219f01c831b060a08edb69e2",
+  "metadata": "{\"compiler\":{\"version\":\"0.6.10+commit.00c0fcaf\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"gem_\",\"type\":\"address\"},{\"internalType\":\"contract IERC20\",\"name\":\"dai_\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"BuyGem\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"usr\",\"type\":\"address\"}],\"name\":\"Deny\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"what\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"data\",\"type\":\"uint256\"}],\"name\":\"File\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"usr\",\"type\":\"address\"}],\"name\":\"Rely\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"SellGem\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"usr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"gemAmt\",\"type\":\"uint256\"}],\"name\":\"buyGem\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"dai\",\"outputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"daiJoin\",\"outputs\":[{\"internalType\":\"contract DaiJoinMock\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"gemJoin\",\"outputs\":[{\"internalType\":\"contract AuthGemJoinMock\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"usr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"gemAmt\",\"type\":\"uint256\"}],\"name\":\"sellGem\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tin_\",\"type\":\"uint256\"}],\"name\":\"setTin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tout_\",\"type\":\"uint256\"}],\"name\":\"setTout\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tin\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tout\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"methods\":{}},\"userdoc\":{\"methods\":{}}},\"settings\":{\"compilationTarget\":{\"contracts/mocks/DssPsmMock.sol\":\"DssPsmMock\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":20000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity >=0.6.0 <0.8.0;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `recipient`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `sender` to `recipient` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n}\\n\",\"keccak256\":\"0x5f02220344881ce43204ae4a6281145a67bc52c2bb1290a791857df3d19d78f5\",\"license\":\"MIT\"},\"contracts/mocks/AuthGemJoinMock.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-3.0-or-later\\npragma solidity ^0.6.7;\\nimport \\\"./IERC20WithMint.sol\\\";\\n\\n\\ncontract AuthGemJoinMock {\\n\\n    IERC20WithMint public gem;\\n\\n    constructor(address gem_) public {\\n        gem = IERC20WithMint(gem_);\\n    }\\n\\n    function join(address, uint256 wad, address _msgSender) external {\\n        gem.burn(_msgSender, wad);\\n    }\\n\\n    function exit(address guy, uint256 wad) external {\\n        gem.mint(guy, wad);\\n    }\\n}\",\"keccak256\":\"0x1ef3a9ef5e7378aa1d3f7e991bfb3eeabc8d20b6e82dc39fe15c60948e8bfc63\",\"license\":\"GPL-3.0-or-later\"},\"contracts/mocks/DaiJoinMock.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-3.0-or-later\\npragma solidity ^0.6.7;\\nimport \\\"./IERC20WithMint.sol\\\";\\n\\n\\ncontract DaiJoinMock {\\n    IERC20WithMint public dai;  // Stablecoin Token\\n\\n    constructor(address dai_) public {\\n        dai = IERC20WithMint(dai_);\\n    }\\n\\n    function join(address, uint wad) external {\\n        dai.transferFrom(msg.sender, address(this), wad);\\n    }\\n\\n    function exit(address usr, uint wad) external {\\n        dai.transfer(usr, wad);\\n    }\\n}\",\"keccak256\":\"0x879dbcfcd0004b79b0fe5d83df1367b7e91e6be12d70109da1b5f64a0e0b74e7\",\"license\":\"GPL-3.0-or-later\"},\"contracts/mocks/DssPsmMock.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-3.0-or-later\\npragma solidity ^0.6.7;\\nimport \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\nimport \\\"./DaiJoinMock.sol\\\";\\nimport \\\"./AuthGemJoinMock.sol\\\";\\n\\n\\n// Peg Stability Module\\n// Allows anyone to go between Dai and the Gem by pooling the liquidity\\n// An optional fee is charged for incoming and outgoing transfers\\n\\ncontract DssPsmMock {\\n\\n    IERC20 public dai;\\n    AuthGemJoinMock public gemJoin;\\n    DaiJoinMock public daiJoin;\\n\\n    uint256 public tin;         // toll in [wad]\\n    uint256 public tout;        // toll out [wad]\\n\\n    // --- Events ---\\n    event Rely(address indexed usr);\\n    event Deny(address indexed usr);\\n    event File(bytes32 indexed what, uint256 data);\\n    event SellGem(address indexed owner, uint256 value, uint256 fee);\\n    event BuyGem(address indexed owner, uint256 value, uint256 fee);\\n\\n    // --- Init ---\\n    constructor(IERC20 gem_, IERC20 dai_) public {\\n        gemJoin = new AuthGemJoinMock(address(gem_));\\n        daiJoin = new DaiJoinMock(address(dai_));\\n        dai = dai_;\\n        dai.approve(address(daiJoin), uint256(-1));\\n    }\\n\\n    // --- Math ---\\n    uint256 constant WAD = 10 ** 18;\\n    uint256 constant RAY = 10 ** 27;\\n    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {\\n        require((z = x + y) >= x);\\n    }\\n    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {\\n        require((z = x - y) <= x);\\n    }\\n    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {\\n        require(y == 0 || (z = x * y) / y == x);\\n    }\\n\\n    // --- Administration ---\\n    function setTin(uint256 tin_) external {\\n        tin = tin_;\\n    }\\n    function setTout(uint256 tout_) external {\\n        tout = tout_;\\n    }\\n\\n    // --- Primary Functions ---\\n    function sellGem(address usr, uint256 gemAmt) external {\\n        uint256 fee = mul(gemAmt, tin) / WAD;\\n        uint256 daiAmt = sub(gemAmt, fee) * 1e12; // USDC has 6 decimals, Dai 18.\\n        gemJoin.join(address(this), gemAmt, msg.sender);\\n        daiJoin.exit(usr, daiAmt);\\n\\n        emit SellGem(usr, gemAmt, fee);\\n    }\\n\\n    function buyGem(address usr, uint256 gemAmt) external {\\n        uint256 fee = mul(gemAmt, tout) / WAD;\\n        uint256 daiAmt = add(gemAmt, fee) * 1e12; // USDC has 6 decimals, Dai 18.\\n        require(dai.transferFrom(msg.sender, address(this), daiAmt), \\\"DssPsm/failed-transfer\\\");\\n        daiJoin.join(address(this), daiAmt);\\n        gemJoin.exit(usr, gemAmt);\\n\\n        emit BuyGem(usr, gemAmt, fee);\\n    }\\n}\",\"keccak256\":\"0x120ec74fbdd718f6ac7016c77a2948d2f8e3d83fb023e270fc03b487866ac38c\",\"license\":\"GPL-3.0-or-later\"},\"contracts/mocks/IERC20WithMint.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-3.0-or-later\\npragma solidity ^0.6.7;\\nimport \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\n\\n\\ninterface IERC20WithMint is IERC20 {\\n    function mint(address, uint256) external;\\n    function burn(address, uint256) external;\\n}\\n\",\"keccak256\":\"0xbf1933209f09423516cc83e72e3910b06fcca0ff53d2dbcda40a58725e475d4c\",\"license\":\"GPL-3.0-or-later\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50604051610e80380380610e808339818101604052604081101561003357600080fd5b508051602090910151604051829061004a90610180565b6001600160a01b03909116815260405190819003602001906000f080158015610077573d6000803e3d6000fd5b50600180546001600160a01b0319166001600160a01b039290921691909117905560405181906100a69061018d565b6001600160a01b03909116815260405190819003602001906000f0801580156100d3573d6000803e3d6000fd5b50600280546001600160a01b03199081166001600160a01b03938416179182905560008054909116848416178082556040805163095ea7b360e01b8152938516600485015260001960248501525193169263095ea7b3926044808201936020939283900390910190829087803b15801561014c57600080fd5b505af1158015610160573d6000803e3d6000fd5b505050506040513d602081101561017657600080fd5b5061019a92505050565b6102d5806108d983390190565b6102d280610bae83390190565b610730806101a96000396000f3fe608060405234801561001057600080fd5b50600436106100a35760003560e01c80639599127611610076578063c11645bc1161005b578063c11645bc146101a1578063f4b9fa75146101a9578063fae036d5146101b1576100a3565b8063959912761461014b578063c0e9966b14610184576100a3565b806301664f66146100a857806354679f52146100d9578063568d4b6f146100f85780638d7ef9bb14610112575b600080fd5b6100b06101b9565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b6100f6600480360360208110156100ef57600080fd5b50356101d5565b005b6101006101da565b60408051918252519081900360200190f35b6100f66004803603604081101561012857600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356101e0565b6100f66004803603604081101561016157600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356104b1565b6100f66004803603602081101561019a57600080fd5b503561066d565b6100b0610672565b6100b061068e565b6101006106aa565b60015473ffffffffffffffffffffffffffffffffffffffff1681565b600455565b60035481565b6000670de0b6b3a76400006101f7836004546106b0565b816101fe57fe5b049050600061020d83836106da565b60008054604080517f23b872dd00000000000000000000000000000000000000000000000000000000815233600482015230602482015264e8d4a510009490940260448501819052905190945073ffffffffffffffffffffffffffffffffffffffff909116926323b872dd9260648083019360209390929083900390910190829087803b15801561029d57600080fd5b505af11580156102b1573d6000803e3d6000fd5b505050506040513d60208110156102c757600080fd5b505161033457604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601660248201527f44737350736d2f6661696c65642d7472616e7366657200000000000000000000604482015290519081900360640190fd5b600254604080517f3b4da69f00000000000000000000000000000000000000000000000000000000815230600482015260248101849052905173ffffffffffffffffffffffffffffffffffffffff90921691633b4da69f9160448082019260009290919082900301818387803b1580156103ad57600080fd5b505af11580156103c1573d6000803e3d6000fd5b5050600154604080517fef693bed00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff898116600483015260248201899052915191909216935063ef693bed9250604480830192600092919082900301818387803b15801561044057600080fd5b505af1158015610454573d6000803e3d6000fd5b50506040805186815260208101869052815173ffffffffffffffffffffffffffffffffffffffff891694507f085d06ecf4c34b237767a31c0888e121d89546a77f186f1987c6b8715e1a8caa93509081900390910190a250505050565b6000670de0b6b3a76400006104c8836003546106b0565b816104cf57fe5b04905060006104de83836106ea565b600154604080517fd14b1e4b00000000000000000000000000000000000000000000000000000000815230600482015260248101879052336044820152905164e8d4a5100093909302935073ffffffffffffffffffffffffffffffffffffffff9091169163d14b1e4b9160648082019260009290919082900301818387803b15801561056957600080fd5b505af115801561057d573d6000803e3d6000fd5b5050600254604080517fef693bed00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff898116600483015260248201879052915191909216935063ef693bed9250604480830192600092919082900301818387803b1580156105fc57600080fd5b505af1158015610610573d6000803e3d6000fd5b50506040805186815260208101869052815173ffffffffffffffffffffffffffffffffffffffff891694507fef75f5a47cc9a929968796ceb84f19e7541617b4577f2c228ea95200e157208193509081900390910190a250505050565b600355565b60025473ffffffffffffffffffffffffffffffffffffffff1681565b60005473ffffffffffffffffffffffffffffffffffffffff1681565b60045481565b60008115806106cb575050808202828282816106c857fe5b04145b6106d457600080fd5b92915050565b808201828110156106d457600080fd5b808203828111156106d457600080fdfea2646970667358221220a48883bb3659a08f52372d55200b81bca13307842448621abd26e44dc3d6c8eb64736f6c634300060a0033608060405234801561001057600080fd5b506040516102d53803806102d58339818101604052602081101561003357600080fd5b5051600080546001600160a01b039092166001600160a01b0319909216919091179055610270806100656000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80637bd2bea714610046578063d14b1e4b14610077578063ef693bed146100bc575b600080fd5b61004e6100f5565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b6100ba6004803603606081101561008d57600080fd5b5073ffffffffffffffffffffffffffffffffffffffff813581169160208101359160409091013516610111565b005b6100ba600480360360408110156100d257600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356101a6565b60005473ffffffffffffffffffffffffffffffffffffffff1681565b60008054604080517f9dc29fac00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff85811660048301526024820187905291519190921692639dc29fac926044808201939182900301818387803b15801561018957600080fd5b505af115801561019d573d6000803e3d6000fd5b50505050505050565b60008054604080517f40c10f1900000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff868116600483015260248201869052915191909216926340c10f19926044808201939182900301818387803b15801561021e57600080fd5b505af1158015610232573d6000803e3d6000fd5b50505050505056fea26469706673582212205af4168fd8733c5c9bca8d55eb6591309b852ed45626af7db1e9b3a2cdea9e2064736f6c634300060a0033608060405234801561001057600080fd5b506040516102d23803806102d28339818101604052602081101561003357600080fd5b5051600080546001600160a01b039092166001600160a01b031990921691909117905561026d806100656000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80633b4da69f14610046578063ef693bed14610081578063f4b9fa75146100ba575b600080fd5b61007f6004803603604081101561005c57600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356100eb565b005b61007f6004803603604081101561009757600080fd5b5073ffffffffffffffffffffffffffffffffffffffff813516906020013561019c565b6100c261021b565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b60008054604080517f23b872dd00000000000000000000000000000000000000000000000000000000815233600482015230602482015260448101859052905173ffffffffffffffffffffffffffffffffffffffff909216926323b872dd926064808401936020939083900390910190829087803b15801561016c57600080fd5b505af1158015610180573d6000803e3d6000fd5b505050506040513d602081101561019657600080fd5b50505050565b60008054604080517fa9059cbb00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8681166004830152602482018690529151919092169263a9059cbb92604480820193602093909283900390910190829087803b15801561016c57600080fd5b60005473ffffffffffffffffffffffffffffffffffffffff168156fea2646970667358221220ba9f82f4b2900e6cf3ebb1bc2549f13d8e9ddf22abdac97063c8ee338f93e77c64736f6c634300060a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100a35760003560e01c80639599127611610076578063c11645bc1161005b578063c11645bc146101a1578063f4b9fa75146101a9578063fae036d5146101b1576100a3565b8063959912761461014b578063c0e9966b14610184576100a3565b806301664f66146100a857806354679f52146100d9578063568d4b6f146100f85780638d7ef9bb14610112575b600080fd5b6100b06101b9565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b6100f6600480360360208110156100ef57600080fd5b50356101d5565b005b6101006101da565b60408051918252519081900360200190f35b6100f66004803603604081101561012857600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356101e0565b6100f66004803603604081101561016157600080fd5b5073ffffffffffffffffffffffffffffffffffffffff81351690602001356104b1565b6100f66004803603602081101561019a57600080fd5b503561066d565b6100b0610672565b6100b061068e565b6101006106aa565b60015473ffffffffffffffffffffffffffffffffffffffff1681565b600455565b60035481565b6000670de0b6b3a76400006101f7836004546106b0565b816101fe57fe5b049050600061020d83836106da565b60008054604080517f23b872dd00000000000000000000000000000000000000000000000000000000815233600482015230602482015264e8d4a510009490940260448501819052905190945073ffffffffffffffffffffffffffffffffffffffff909116926323b872dd9260648083019360209390929083900390910190829087803b15801561029d57600080fd5b505af11580156102b1573d6000803e3d6000fd5b505050506040513d60208110156102c757600080fd5b505161033457604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601660248201527f44737350736d2f6661696c65642d7472616e7366657200000000000000000000604482015290519081900360640190fd5b600254604080517f3b4da69f00000000000000000000000000000000000000000000000000000000815230600482015260248101849052905173ffffffffffffffffffffffffffffffffffffffff90921691633b4da69f9160448082019260009290919082900301818387803b1580156103ad57600080fd5b505af11580156103c1573d6000803e3d6000fd5b5050600154604080517fef693bed00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff898116600483015260248201899052915191909216935063ef693bed9250604480830192600092919082900301818387803b15801561044057600080fd5b505af1158015610454573d6000803e3d6000fd5b50506040805186815260208101869052815173ffffffffffffffffffffffffffffffffffffffff891694507f085d06ecf4c34b237767a31c0888e121d89546a77f186f1987c6b8715e1a8caa93509081900390910190a250505050565b6000670de0b6b3a76400006104c8836003546106b0565b816104cf57fe5b04905060006104de83836106ea565b600154604080517fd14b1e4b00000000000000000000000000000000000000000000000000000000815230600482015260248101879052336044820152905164e8d4a5100093909302935073ffffffffffffffffffffffffffffffffffffffff9091169163d14b1e4b9160648082019260009290919082900301818387803b15801561056957600080fd5b505af115801561057d573d6000803e3d6000fd5b5050600254604080517fef693bed00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff898116600483015260248201879052915191909216935063ef693bed9250604480830192600092919082900301818387803b1580156105fc57600080fd5b505af1158015610610573d6000803e3d6000fd5b50506040805186815260208101869052815173ffffffffffffffffffffffffffffffffffffffff891694507fef75f5a47cc9a929968796ceb84f19e7541617b4577f2c228ea95200e157208193509081900390910190a250505050565b600355565b60025473ffffffffffffffffffffffffffffffffffffffff1681565b60005473ffffffffffffffffffffffffffffffffffffffff1681565b60045481565b60008115806106cb575050808202828282816106c857fe5b04145b6106d457600080fd5b92915050565b808201828110156106d457600080fd5b808203828111156106d457600080fdfea2646970667358221220a48883bb3659a08f52372d55200b81bca13307842448621abd26e44dc3d6c8eb64736f6c634300060a0033",
+  "devdoc": {
+    "methods": {}
+  },
+  "userdoc": {
+    "methods": {}
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 14264,
+        "contract": "contracts/mocks/DssPsmMock.sol:DssPsmMock",
+        "label": "dai",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(IERC20)1118"
+      },
+      {
+        "astId": 14266,
+        "contract": "contracts/mocks/DssPsmMock.sol:DssPsmMock",
+        "label": "gemJoin",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_contract(AuthGemJoinMock)14204"
+      },
+      {
+        "astId": 14268,
+        "contract": "contracts/mocks/DssPsmMock.sol:DssPsmMock",
+        "label": "daiJoin",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_contract(DaiJoinMock)14257"
+      },
+      {
+        "astId": 14270,
+        "contract": "contracts/mocks/DssPsmMock.sol:DssPsmMock",
+        "label": "tin",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 14272,
+        "contract": "contracts/mocks/DssPsmMock.sol:DssPsmMock",
+        "label": "tout",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_uint256"
+      }
+    ],
+    "types": {
+      "t_contract(AuthGemJoinMock)14204": {
+        "encoding": "inplace",
+        "label": "contract AuthGemJoinMock",
+        "numberOfBytes": "20"
+      },
+      "t_contract(DaiJoinMock)14257": {
+        "encoding": "inplace",
+        "label": "contract DaiJoinMock",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IERC20)1118": {
+        "encoding": "inplace",
+        "label": "contract IERC20",
+        "numberOfBytes": "20"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

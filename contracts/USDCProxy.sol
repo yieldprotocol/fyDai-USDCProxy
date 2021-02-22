@@ -32,9 +32,9 @@ contract USDCProxy is DecimalMath {
     using YieldAuth for IController;
     using YieldAuth for IPool;
 
-    event BorrowedUSDC();
-    event RepaidDebtEarly();
-    event RepaidDebtMature();
+    event BorrowedUSDC(address indexed user);
+    event RepaidDebtEarly(address indexed user);
+    event RepaidDebtMature(address indexed user);
 
     DaiAbstract public immutable dai;
     IUSDC public immutable usdc;
@@ -87,7 +87,7 @@ contract USDCProxy is DecimalMath {
         pool.buyDai(address(this), address(this), daiToBuy.toUint128());
         psm.buyGem(to, usdcToBorrow); // PSM takes USDC amounts with 6 decimals
 
-        emit BorrowedUSDC();
+        emit BorrowedUSDC(msg.sender);
 
         return fyDaiToBorrow;
     }
@@ -122,7 +122,7 @@ contract USDCProxy is DecimalMath {
         require(fyDaiRepayment >= minFYDaiRepayment, "USDCProxy: Not enough debt repaid");
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiRepayment);
 
-        emit RepaidDebtEarly();
+        emit RepaidDebtEarly(msg.sender);
 
         return daiObtained;
     }
@@ -155,7 +155,7 @@ contract USDCProxy is DecimalMath {
         pool.buyFYDai(address(this), address(this), fyDaiDebt.toUint128());
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
 
-        emit RepaidDebtEarly();
+        emit RepaidDebtEarly(msg.sender);
 
         return usdcIn;
     }
@@ -230,7 +230,7 @@ contract USDCProxy is DecimalMath {
         psm.sellGem(address(this), usdcRepayment);
         controller.repayDai(collateral, maturity, address(this), to, daiRepayment);
 
-        emit RepaidDebtMature();
+        emit RepaidDebtMature(msg.sender);
 
         return usdcRepayment;
     }
