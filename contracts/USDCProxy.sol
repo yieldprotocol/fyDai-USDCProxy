@@ -22,7 +22,12 @@ library RoundingMath {
     }
 }
 
-contract USDCProxy is DecimalMath {
+interface IEventRelayer {
+    enum EventType {BorrowedUSDCType, RepaidDebtEarlyType, RepaidDebtMatureType}
+    function relay(EventType eventType, address user) external;
+}
+
+contract USDCProxy is IEventRelayer, DecimalMath {
     using SafeCast for uint256;
     using SafeMath for uint256;
     using RoundingMath for uint256;
@@ -40,6 +45,7 @@ contract USDCProxy is DecimalMath {
     IUSDC public immutable usdc;
     IController public immutable controller;
     DssPsmAbstract public immutable psm;
+    IEventRelayer public immutable usdcProxy;
 
     address public immutable treasury;
 
@@ -52,6 +58,14 @@ contract USDCProxy is DecimalMath {
         controller = _controller;
         psm = psm_;
         usdc = IUSDC(AuthGemJoinAbstract(psm_.gemJoin()).gem());
+        usdcProxy = IEventRelayer(address(this)); // This contract has two functions, as itself, and delegatecalled by a dsproxy.
+    }
+
+    /// @dev Workaround to emit events from the USDCProxy contract when being executed through a dsProxy delegate call.
+    function relay(EventType eventType, address user) public override {
+        if (eventType == EventType.BorrowedUSDCType) emit BorrowedUSDC(user);
+        if (eventType == EventType.RepaidDebtEarlyType) emit RepaidDebtEarly(user);
+        if (eventType == EventType.RepaidDebtMatureType) emit RepaidDebtMature(user);
     }
 
     /// @dev Borrow fyDai from Controller, sell it immediately for Dai in a pool, and sell the Dai for USDC in Maker's PSM, for a maximum fyDai debt.
@@ -87,7 +101,7 @@ contract USDCProxy is DecimalMath {
         pool.buyDai(address(this), address(this), daiToBuy.toUint128());
         psm.buyGem(to, usdcToBorrow); // PSM takes USDC amounts with 6 decimals
 
-        emit BorrowedUSDC(msg.sender);
+        usdcProxy.relay(EventType.BorrowedUSDCType, msg.sender);
 
         return fyDaiToBorrow;
     }
@@ -122,7 +136,7 @@ contract USDCProxy is DecimalMath {
         require(fyDaiRepayment >= minFYDaiRepayment, "USDCProxy: Not enough debt repaid");
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiRepayment);
 
-        emit RepaidDebtEarly(msg.sender);
+        usdcProxy.relay(EventType.RepaidDebtEarlyType, msg.sender);
 
         return daiObtained;
     }
@@ -155,7 +169,7 @@ contract USDCProxy is DecimalMath {
         pool.buyFYDai(address(this), address(this), fyDaiDebt.toUint128());
         controller.repayFYDai(collateral, maturity, address(this), to, fyDaiDebt);
 
-        emit RepaidDebtEarly(msg.sender);
+        usdcProxy.relay(EventType.RepaidDebtEarlyType, msg.sender);
 
         return usdcIn;
     }
@@ -230,7 +244,7 @@ contract USDCProxy is DecimalMath {
         psm.sellGem(address(this), usdcRepayment);
         controller.repayDai(collateral, maturity, address(this), to, daiRepayment);
 
-        emit RepaidDebtMature(msg.sender);
+        usdcProxy.relay(EventType.RepaidDebtMatureType, msg.sender);
 
         return usdcRepayment;
     }

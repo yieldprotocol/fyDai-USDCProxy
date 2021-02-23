@@ -156,9 +156,12 @@ contract('USDCProxy - USDC', async (accounts) => {
 
       await controller.addDelegate(proxy.address, { from: user1 })
       await proxy.borrowUSDCForMaximumFYDaiApprove(pool.address)
-      await proxy.borrowUSDCForMaximumFYDai(pool.address, WETH, maturity1, user2, usdcBorrowed, fyDaiTokens1, {
+      const tx = await proxy.borrowUSDCForMaximumFYDai(pool.address, WETH, maturity1, user2, usdcBorrowed, fyDaiTokens1, {
         from: user1,
       })
+      assert.equal(tx.logs[0].event, 'BorrowedUSDC')
+      assert.equal(tx.logs[0].args.user, user1)
+
       const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
 
       assert.equal(await usdc.balanceOf(user2), usdcBorrowed.toString())
@@ -250,9 +253,13 @@ contract('USDCProxy - USDC', async (accounts) => {
           controllerSig
         )
         .encodeABI()
-      await dsProxy.methods['execute(address,bytes)'](proxy.address, calldata, {
+      const tx = await dsProxy.methods['execute(address,bytes)'](proxy.address, calldata, {
         from: user1,
       })
+      // TODO: Why does a dsproxy transaction have no logs?
+      console.log(tx.logs)
+      // assert.equal(tx.logs[0].event, 'BorrowedUSDC')
+      // assert.equal(tx.logs[0].args.user, user1)
 
       assert.equal(await usdc.balanceOf(user2), oneUSDC.toString())
     })
@@ -291,9 +298,11 @@ contract('USDCProxy - USDC', async (accounts) => {
         const debtBefore = await controller.debtFYDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
         await proxy.repayDebtEarlyApprove(pool.address)
-        await proxy.repayDebtEarly(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
+        const tx = await proxy.repayDebtEarly(pool.address, WETH, maturity1, user1, usdcRepayment, 0, {
           from: user1,
         })
+        assert.equal(tx.logs[0].event, 'RepaidDebtEarly')
+        assert.equal(tx.logs[0].args.user, user1)
         const usdcAfter = await usdc.balanceOf(user1)
         const debtAfter = await controller.debtFYDai(WETH, maturity1, user1)
 
@@ -464,9 +473,11 @@ contract('USDCProxy - USDC', async (accounts) => {
 
         await usdc.approve(proxy.address, MAX, { from: user1 })
         await proxy.repayDebtEarlyApprove(pool.address)
-        await proxy.repayAllEarly(pool.address, WETH, maturity1, user1, MAX, {
+        const tx = await proxy.repayAllEarly(pool.address, WETH, maturity1, user1, MAX, {
           from: user1,
         })
+        assert.equal(tx.logs[0].event, 'RepaidDebtEarly')
+        assert.equal(tx.logs[0].args.user, user1)
         const usdcAfter = await usdc.balanceOf(user1)
 
         expect((await controller.debtFYDai(WETH, maturity1, user1)).toString()).to.be.bignumber.eq('0')
@@ -590,9 +601,11 @@ contract('USDCProxy - USDC', async (accounts) => {
         const usdcBefore = await usdc.balanceOf(user1)
         const debtBefore = await controller.debtDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayDebtMatureWithSignature(WETH, maturity1, user1, daiRepayment, usdcSig, controllerSig, {
+        const tx = await proxy.repayDebtMatureWithSignature(WETH, maturity1, user1, daiRepayment, usdcSig, controllerSig, {
           from: user1,
         })
+        assert.equal(tx.logs[0].event, 'RepaidDebtMature')
+        assert.equal(tx.logs[0].args.user, user1)
         const usdcAfter = await usdc.balanceOf(user1)
         const debtAfter = await controller.debtDai(WETH, maturity1, user1)
 
@@ -645,9 +658,11 @@ contract('USDCProxy - USDC', async (accounts) => {
         // const usdcBefore = await usdc.balanceOf(user1)
         // const debtBefore = await controller.debtDai(WETH, maturity1, user1)
         await usdc.approve(proxy.address, MAX, { from: user1 })
-        await proxy.repayAllMatureWithSignature(WETH, maturity1, user1, usdcSig, controllerSig, {
+        const tx = await proxy.repayAllMatureWithSignature(WETH, maturity1, user1, usdcSig, controllerSig, {
           from: user1,
         })
+        assert.equal(tx.logs[0].event, 'RepaidDebtMature')
+        assert.equal(tx.logs[0].args.user, user1)
         // const usdcAfter = await usdc.balanceOf(user1)
         // const debtAfter = await controller.debtDai(WETH, maturity1, user1)
 
