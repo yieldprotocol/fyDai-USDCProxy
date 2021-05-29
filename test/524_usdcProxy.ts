@@ -289,7 +289,7 @@ contract('USDCProxy - USDC', async (accounts) => {
 
       it('repays some debt with USDC', async () => {
         const usdcRepayment = new BN(oneUSDC.div('2').toString())
-        // dai = usdc * (1 - await psm.tin()) <- tin is 0 right now
+        // usdc = dai / (1 - tin)
         const daiRepayment = new BN(oneToken.div('2').toString())
         const fyDaiRepayment = await calculateTrade(pool, sellDai, daiRepayment)
 
@@ -463,12 +463,15 @@ contract('USDCProxy - USDC', async (accounts) => {
       // ---- Total, early
 
       it('repays all debt with USDC', async () => {
+        const WAD = new BN(toWad(1).toString())
+        await psm.setTin(toWad(0.001))
         await usdc.mint(user1, oneUSDC.mul('2'), { from: user1 })
 
         const fyDaiRepayment = await controller.debtFYDai(WETH, maturity1, user1)
         const daiRepayment = await calculateTrade(pool, buyFYDai, fyDaiRepayment)
-        // usdc = dai * (1 + await psm.tin()) <- tin is 0 right now
-        const usdcRepayment = daiRepayment.div(new BN('1000000000000'))
+        // usdc = dai / (1 - tin)
+        const usdcRepayment18 = daiRepayment.mul(WAD).div(WAD.sub(await psm.tin()))
+        const usdcRepayment = usdcRepayment18.div(new BN('1000000000000'))
         const usdcBefore = await usdc.balanceOf(user1)
 
         await usdc.approve(proxy.address, MAX, { from: user1 })
