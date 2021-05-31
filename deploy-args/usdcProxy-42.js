@@ -1,6 +1,6 @@
 const addresses = {
     'controller': '0xFCDF6d4de26C53115610D9FBdaFD93CBDb843Ea2',
-    'psm': '0xe4dC42e438879987e287A6d9519379936d7b065A',
+    'psm': '0x5414e1ACBe734a4a71901e35Edb5eF8Dd06e56c2',
 }
   
 module.exports = [

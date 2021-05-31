@@ -160,7 +160,7 @@ contract USDCProxy is IEventRelayer, DecimalMath {
     {
         uint256 fyDaiDebt = controller.debtFYDai(collateral, maturity, to);
         uint256 daiIn = pool.buyFYDaiPreview(fyDaiDebt.toUint128());
-        uint256 usdcIn18 = (daiIn * 1e18).divrup(1e18 + psm.tin()); // Fixed point division with 18 decimals - We are working an usdc value from a dai one, so we round up.
+        uint256 usdcIn18 = (daiIn * 1e18).divrup(1e18 - psm.tin()); // Fixed point division with 18 decimals - We are working an usdc value from a dai one, so we round up.
         uint256 usdcIn = usdcIn18.divrup(1e12); // We are working an usdc value from a dai one, so we round up.
 
         require (usdcIn <= maxUSDCIn, "USDCProxy: Too much USDC required");
